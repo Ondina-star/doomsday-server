@@ -271,7 +271,7 @@
             let cutoffVal = document.getElementById("pack-cutoff-input").value;
             let checkCutoff = cutoffVal !== "";
             let maxCutoff = parseInt(cutoffVal) || 0;
-            document.getElementById("global-chat-count").innerText = list.filter(m => m.chat === "In Chat" && m.status === "Confirmed").length;
+            document.getElementById("global-chat-count").innerText = list.filter(m => m.status === "Confirmed").length;
             const listUI = document.getElementById("blacklist-ui-list");
             if(listUI) {
                 listUI.innerHTML = "";
