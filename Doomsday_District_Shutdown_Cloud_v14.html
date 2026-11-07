@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doomsday: District Shutdown Logistics v14 Cloud Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { background-color: #050705; font-family: 'Courier New', Courier, monospace; color: #e6edf3; }
+        .cyber-panel { background: #12161a; border: 2px solid #ffb703; box-shadow: 0 0 15px rgba(255, 183, 3, 0.15); }
+        .scrollable-table-container { max-height: 580px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        th { position: sticky; top: 0; background-color: #1a1f26; z-index: 10; color: #ffb703; border-bottom: 2px solid #ffb703; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; padding: 16px; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="p-3 md:p-6 xl:p-12">
+    <div id="login-screen" class="fixed inset-0 bg-black z-50 flex flex-col justify-center items-center p-4">
+        <div class="cyber-panel p-6 md:p-8 rounded-lg w-full max-w-md text-center">
+            <h1 class="text-xl md:text-2xl font-bold text-yellow-500 mb-2">☢️ DISTRICT COMMAND ACCESS ☢️</h1>
+            <p class="text-xs text-gray-400 mb-6">RESTRICTED CLOUD MULTI-OPERATOR GATE CONTROL SYSTEM</p>
+            <input type="text" id="username" placeholder="USERNAME" class="w-full bg-gray-900 border border-yellow-600 rounded p-2.5 md:p-3 mb-3 text-center text-yellow-400 font-bold tracking-widest focus:outline-none text-sm">
+            <input type="password" id="password" placeholder="PASSWORD" class="w-full bg-gray-900 border border-yellow-600 rounded p-2.5 md:p-3 mb-6 text-center text-yellow-400 font-bold tracking-widest focus:outline-none text-sm">
+            <button onclick="checkAuth()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold p-3 rounded tracking-wider transition text-sm">INITIALIZE PANEL</button>
+            <p id="login-error" class="text-red-500 text-xs mt-3 hidden font-bold">⚠️ ACCESS DENIED: INVALID DATA CODE ⚠️</p>
+        </div>
+    </div>
+    <div id="main-panel" class="hidden w-full mx-auto max-w-[1600px]">
+        <header class="cyber-panel p-4 md:p-6 rounded-lg mb-6 flex flex-col xl:flex-row justify-between items-center gap-4">
+            <div class="text-center xl:text-left w-full xl:w-auto">
+                <div class="flex flex-col sm:flex-row items-center justify-center xl:justify-start gap-3">
+                    <h2 class="text-lg md:text-2xl font-bold text-yellow-500 tracking-wider">COMMAND CENTER: CLOCKWORK SHUTDOWN</h2>
+                    <select id="event-selector" onchange="switchEvent()" class="bg-gray-900 border border-yellow-600 rounded p-1 text-xs md:text-sm font-bold text-yellow-400 focus:outline-none">
+                        <option value="2026-11-06">DEPLOYMENT: 2026-11-06</option>
+                    </select>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Authorized Commanders in Game Chat: <span id="global-chat-count" class="text-green-400 font-bold">0</span> / 180 Max Capacity</p>
+                <div class="text-[10px] text-blue-400 font-bold mt-1 tracking-wider flex items-center justify-center xl:justify-start gap-1">
+                    <span class="inline-block w-2 h-2 rounded-full bg-blue-500 animate-ping"></span> 
+                    CLOUD NETWORK STATUS: <span id="network-status">INITIALIZING PROXY...</span>
+                </div>
+            </div>
+            <div class="flex flex-wrap justify-center gap-2 md:gap-3 w-full xl:w-auto">
+                <button onclick="openModal('add-member-modal')" class="bg-green-900 border border-green-500 hover:bg-green-800 text-green-200 text-[11px] md:text-xs font-bold px-3 py-2 rounded tracking-wide">➕ ADD MEMBER</button>
+                <button onclick="openModal('event-modal')" class="bg-blue-900 border border-blue-500 hover:bg-blue-800 text-blue-200 text-[11px] md:text-xs font-bold px-3 py-2 rounded tracking-wide">📅 NEW EVENT</button>
+                <button onclick="openModal('blacklist-modal')" class="bg-red-950 border border-red-600 hover:bg-red-900 text-red-400 text-[11px] md:text-xs font-bold px-3 py-2 rounded tracking-wide">💀 BLACKLIST</button>
+                <button onclick="openModal('clone-modal')" class="bg-orange-950 border border-orange-600 hover:bg-orange-900 text-orange-400 text-[11px] md:text-xs font-bold px-3 py-2 rounded tracking-wide">🔄 CLONE TIME</button>
+                <button onclick="logout()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] md:text-xs font-bold px-3 py-2 rounded tracking-wide">LOGOUT</button>
+            </div>
+        </header>
+        <div class="cyber-panel p-4 rounded-lg mb-6 flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-center">
+                <input type="text" id="search-input" oninput="applyFilters()" placeholder="Search ID / Name..." class="bg-gray-900 border border-gray-700 rounded p-2 text-sm text-yellow-400 focus:outline-none w-full sm:w-64">
+                <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded px-2 w-full sm:w-auto justify-between sm:justify-start">
+                    <span class="text-xs text-orange-400 font-bold whitespace-nowrap">TOTAL PACKS &lt;</span>
+                    <input type="number" id="pack-cutoff-input" oninput="applyFilters()" min="0" placeholder="0" class="bg-transparent text-yellow-400 text-sm font-bold w-12 text-center p-1 focus:outline-none">
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 text-[11px] md:text-xs w-full lg:w-auto justify-center">
+                <button onclick="setFilter('all')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded font-bold">ALL</button>
+                <button onclick="setFilter('pending')" class="bg-red-900/50 text-red-300 hover:bg-red-900 px-3 py-1.5 rounded font-bold">PENDING</button>
+                <button onclick="setFilter('confirmed')" class="bg-green-900/50 text-green-300 hover:bg-green-900 px-3 py-1.5 rounded font-bold">CONFIRMED</button>
+                <button onclick="setFilter('in-chat')" class="bg-blue-900/50 text-blue-300 hover:bg-blue-900 px-3 py-1.5 rounded font-bold">IN CHAT</button>
+            </div>
+        </div>
+        <main class="cyber-panel rounded-lg p-3 md:p-6">
+            <div class="scrollable-table-container">
+                <table class="w-full text-left border-collapse min-w-[850px]">
+                    <thead>
+                        <tr>
+                            <th class="p-3 md:p-4 text-xs tracking-wider">IDENTITY NO.</th>
+                            <th class="p-3 md:p-4 text-xs tracking-wider">COMMANDER NAME</th>
+                            <th class="p-3 md:p-4 text-xs tracking-wider text-center">DAY 1 PACKS</th>
+                            <th class="p-3 md:p-4 text-xs tracking-wider text-center">DAY 2 PACKS</th>
+                            <th class="p-3 md:p-4 text-xs tracking-wider text-center">DAY 3 PACKS</th>
+                            <th class="p-3 md:p-4 text-xs tracking-wider text-center">GAME CHAT STATE</th>
+                            <th class="p-3 md:p-4 text-xs tracking-wider text-center">DISTRICT STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="member-table-body" class="divide-y divide-gray-800 text-xs md:text-sm"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <div id="add-member-modal" class="modal">
+        <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
+            <h3 class="text-lg font-bold text-green-500 mb-4">Add New Commander</h3>
+            <div class="space-y-3 mb-4">
+                <input type="text" id="new-member-id" placeholder="IDENTITY NUMBER" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-yellow-400 font-bold focus:outline-none">
+                <input type="text" id="new-member-name" placeholder="COMMANDER NAME" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white focus:outline-none">
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('add-member-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Cancel</button>
+                <button onclick="addNewMember()" class="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded text-xs font-bold">Add</button>
+            </div>
+        </div>
+    </div>
+    <div id="event-modal" class="modal">
+        <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
+            <h3 class="text-lg font-bold text-yellow-500 mb-4">Create New Event</h3>
+            <input type="date" id="new-event-date" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-4 text-yellow-400 text-center font-bold focus:outline-none">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('event-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Cancel</button>
+                <button onclick="createNewEvent()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold">Create</button>
+            </div>
+        </div>
+    </div>
+    <div id="blacklist-modal" class="modal">
+        <div class="cyber-panel p-6 rounded-lg w-full max-w-xl">
+            <h3 class="text-lg font-bold text-red-500 mb-2">Blacklist Control</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <input type="text" id="bl-id" placeholder="IDENTITY NUMBER" class="bg-gray-900 border border-gray-700 rounded p-2 text-xs text-red-400 font-bold focus:outline-none">
+                <input type="text" id="bl-name" placeholder="COMMANDER NAME" class="bg-gray-900 border border-gray-700 rounded p-2 text-xs text-red-400 focus:outline-none">
+                <input type="text" id="bl-reason" placeholder="REASON FOR BAN" class="sm:col-span-2 bg-gray-900 border border-gray-700 rounded p-2 text-xs text-gray-300 focus:outline-none">
+            </div>
+            <button onclick="addBlacklistDirect()" class="w-full bg-red-700 hover:bg-red-600 text-white p-2 rounded text-xs font-bold tracking-wider mb-4">ADD TO BLACKLIST</button>
+            <div class="border-t border-gray-800 pt-3 max-h-40 overflow-y-auto">
+                <ul id="blacklist-ui-list" class="text-xs text-red-400 space-y-1"></ul>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button onclick="closeModal('blacklist-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Close</button>
+            </div>
+        </div>
+    </div>
+    <div id="clone-modal" class="modal">
+        <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
+            <h3 class="text-lg font-bold text-orange-500 mb-2">Timeline Cloning Engine</h3>
+            <select id="clone-source-select" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-4 text-xs text-orange-400 font-bold focus:outline-none"></select>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('clone-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Abort</button>
+                <button onclick="executeCloning()" class="bg-orange-700 hover:bg-orange-600 text-white px-4 py-2 rounded text-xs font-bold">Clone</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const SERVER_URL = "http://localhost:3000";
+        let socket;
+        const AUTH_USER = "commander";
+        const AUTH_PASS = "shutdown2026";
+        let currentEvent = "2026-11-06";
+        let activeFilter = "all";
+        let eventsData = {
+            "2026-11-06": [
+                { id: "ID-0912", name: "Alpha_Leader", day1: 5, day2: 4, day3: 6, status: "Confirmed", chat: "In Chat" },
+                { id: "ID-5541", name: "Z-Hunter_99", day1: 0, day2: 1, day3: 2, status: "Pending", chat: "Out" },
+                { id: "ID-8832", name: "Bunker_Shield", day1: 12, day2: 15, day3: 10, status: "Confirmed", chat: "In Chat" },
+                { id: "ID-1102", name: "Slayer_Corp", day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" }
+            ]
+        };
+        let blacklist = [{ id: "ID-6666", name: "Traitor_X" }];
+        function initSocketConnection() {
+            try {
+                socket = io(SERVER_URL);
+                socket.on('connect', () => {
+                    document.getElementById("network-status").innerText = "CONNECTED IN REAL-TIME";
+                    document.getElementById("network-status").className = "text-green-400 font-bold";
+                });
+                socket.on('disconnect', () => {
+                    document.getElementById("network-status").innerText = "OFFLINE - RECONNECTING...";
+                    document.getElementById("network-status").className = "text-red-400 font-bold";
+                });
+                socket.on('commander_synchronized', () => { renderApp(); });
+                socket.on('error_notification', (err) => { alert(err.message); });
+            } catch (e) {
+                document.getElementById("network-status").innerText = "LOCAL MODE (NO CLOUD ENDPOINT CONNECTED)";
+                document.getElementById("network-status").className = "text-orange-400 font-bold";
+            }
+        }
+        function checkAuth() {
+            const u = document.getElementById("username").value;
+            const p = document.getElementById("password").value;
+            if (u === AUTH_USER && p === AUTH_PASS) {
+                document.getElementById("login-screen").classList.add("hidden");
+                document.getElementById("main-panel").classList.remove("hidden");
+                initSocketConnection();
+                renderApp();
+            } else {
+                document.getElementById("login-error").classList.remove("hidden");
+            }
+        }
+        function logout() {
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+            document.getElementById("login-screen").classList.remove("hidden");
+            document.getElementById("main-panel").classList.add("hidden");
+            if(socket) socket.disconnect();
+        }
+        function openModal(id) {
+            if (id === 'clone-modal') {
+                const select = document.getElementById("clone-source-select");
+                select.innerHTML = "";
+                Object.keys(eventsData).forEach(ev => {
+                    if(ev !== currentEvent) select.innerHTML += `<option value="${ev}">${ev}</option>`;
+                });
+                if(select.innerHTML === "") { alert("No past timelines found."); return; }
+            }
+            document.getElementById(id).classList.add("active");
+        }
+        function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+        function addNewMember() {
+            const id = document.getElementById("new-member-id").value.trim();
+            const name = document.getElementById("new-member-name").value.trim();
+            if(!id || !name) return;
+            if(blacklist.some(b => b.id === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
+            eventsData[currentEvent].push({ id, name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" });
+            if(socket && socket.connected) socket.emit('update_commander_data', { commander_id: id, field: 'status', value: 'Pending' });
+            closeModal("add-member-modal");
+            renderApp();
+        }
+        function createNewEvent() {
+            const date = document.getElementById("new-event-date").value;
+            if(!date || eventsData[date]) return;
+            eventsData[date] = [];
+            const selector = document.getElementById("event-selector");
+            selector.innerHTML += `<option value="${date}">DEPLOYMENT: ${date}</option>`;
+            selector.value = date;
+            currentEvent = date;
+            closeModal("event-modal");
+            renderApp();
+        }
+        function addBlacklistDirect() {
+            const id = document.getElementById("bl-id").value.trim();
+            const name = document.getElementById("bl-name").value.trim();
+            if(!id || !name) return;
+            blacklist.push({ id, name });
+            eventsData[currentEvent] = eventsData[currentEvent].filter(m => m.id !== id);
+            renderApp();
+        }
+        function executeCloning() {
+            const source = document.getElementById("clone-source-select").value;
+            if(!source) return;
+            eventsData[currentEvent] = eventsData[source].map(m => ({ id: m.id, name: m.name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" }));
+            closeModal("clone-modal");
+            renderApp();
+        }
+        function toggleStatus(index) {
+            let member = eventsData[currentEvent][index];
+            member.status = member.status === "Pending" ? "Confirmed" : "Pending";
+            if(socket && socket.connected) socket.emit('update_commander_data', { commander_id: member.id, field: 'status', value: member.status });
+            renderApp();
+        }
+        function toggleChat(index) {
+            let member = eventsData[currentEvent][index];
+            member.chat = member.chat === "In Chat" ? "Out" : "In Chat";
+            if(socket && socket.connected) socket.emit('update_commander_data', { commander_id: member.id, field: 'chat', value: member.chat });
+            renderApp();
+        }
+        function updateDice(index, day, change) {
+            let member = eventsData[currentEvent][index];
+            if(day === 1) member.day1 = Math.max(0, member.day1 + change);
+            if(day === 2) member.day2 = Math.max(0, member.day2 + change);
+            if(day === 3) member.day3 = Math.max(0, member.day3 + change);
+            renderApp();
+        }
+        function switchEvent() { currentEvent = document.getElementById("event-selector").value; renderApp(); }
+        function setFilter(type) { activeFilter = type; renderApp(); }
+        function renderApp() {
+            const body = document.getElementById("member-table-body");
+            body.innerHTML = "";
+            let list = eventsData[currentEvent] || [];
+            let searchQuery = document.getElementById("search-input").value.toLowerCase();
+            let cutoffVal = document.getElementById("pack-cutoff-input").value;
+            let checkCutoff = cutoffVal !== "";
+            let maxCutoff = parseInt(cutoffVal) || 0;
+            document.getElementById("global-chat-count").innerText = list.filter(m => m.chat === "In Chat" && m.status === "Confirmed").length;
+            const listUI = document.getElementById("blacklist-ui-list");
+            if(listUI) {
+                listUI.innerHTML = "";
+                blacklist.forEach(b => { listUI.innerHTML += `<li>☠️ <strong>${b.id}</strong> - Blacklisted</li>`; });
+            }
+            list.forEach((m, index) => {
+                let totalPacks = m.day1 + m.day2 + m.day3;
+                if (searchQuery && !m.id.toLowerCase().includes(searchQuery) && !m.name.toLowerCase().includes(searchQuery)) return;
+                if (checkCutoff && totalPacks >= maxCutoff) return;
+                if (activeFilter === "pending" && m.status !== "Pending") return;
+                if (activeFilter === "confirmed" && m.status !== "Confirmed") return;
+                if (activeFilter === "in-chat" && m.chat !== "In Chat") return;
+                let statusBtn = m.status === "Confirmed" ? `<button onclick="toggleStatus(${index})" class="bg-green-600 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase">Confirmed</button>` : `<button onclick="toggleStatus(${index})" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded text-xs w-28 uppercase">Pending</button>`;
+                let chatBtn = m.chat === "In Chat" ? `<button onclick="toggleChat(${index})" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded text-xs w-24 uppercase">In Chat</button>` : `<button onclick="toggleChat(${index})" class="bg-gray-700 text-gray-400 px-3 py-1.5 rounded text-xs w-24 uppercase">Out</button>`;
+                body.innerHTML += `<tr><td class="p-3 font-mono text-yellow-500 font-bold">${m.id}</td><td class="p-3 font-bold text-gray-100">${m.name}</td><td class="p-3 text-center"><button onclick="updateDice(${index},1,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day1} <button onclick="updateDice(${index},1,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},2,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day2} <button onclick="updateDice(${index},2,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},3,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day3} <button onclick="updateDice(${index},3,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center">${chatBtn}</td><td class="p-3 text-center">${statusBtn}</td></tr>`;
+            });
+        }
+        function applyFilters() { renderApp(); }
+    </script>
+</body>
+</html>
