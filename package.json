@@ -1,15 +1,19 @@
 {
-  "name": "doomsday-server",
-  "version": "1.0.0",
+  "name": "doomsday-logistics-v14",
+  "version": "14.0.0",
+  "description": "Panel de logística multioperador en la nube",
   "main": "server.js",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "pg": "^8.11.3",
-    "socket.io": "^4.7.2"
-  },
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
