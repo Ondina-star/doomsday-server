@@ -234,21 +234,22 @@
             closeModal("clone-modal");
             renderApp();
         }
-       function toggleStatus(idNum, currentStatus) {
+       function toggleStatus(index) {
+           let member = eventsData[currentEvent][index];
            let nextStatus = "Pending";
-           if (currentStatus === "Pending") {
+           if (member.status === "Pending") {
                nextStatus = "Confirmed";
-           } else if (currentStatus === "Confirmed") {
+           } else if (member.status === "Confirmed") {
                nextStatus = "Canceled";
            } else {
                nextStatus = "Pending";
            }
            if(socket && socket.connected) {
-               socket.emit('update_commander_data', { commander_id: idNum, field: 'status', value: nextStatus });
+        socket.emit('update_commander_data', { commander_id: member.id, field: 'status', value: nextStatus });
            }
-           renderApp();
        }
-
+        renderApp();
+       }
         function toggleChat(index) {
             let member = eventsData[currentEvent][index];
             member.chat = member.chat === "In Chat" ? "Out" : "In Chat";
