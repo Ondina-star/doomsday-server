@@ -240,46 +240,13 @@
                 if (activeFilter === "confirmed" && m.status !== "Confirmed") return;
                 if (activeFilter === "canceled" && m.status !== "Canceled") return;
                 let statusBtn = "";
-                if (m.status === "Confirmed") {
-                    statusBtn = `<button onclick="toggleStatus(${index})" class="bg-green-600 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase text-white">Confirmed</button>`;
-                } else if (m.status === "Canceled") {
-                    statusBtn = `<button onclick="toggleStatus(${index})" class="bg-orange-600 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase text-white">Canceled</button>`;
-                } else {
-                    statusBtn = `<button onclick="toggleStatus(${index})" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded text-xs w-28 uppercase">Pending</button>`;
-                }
-                let chatBtn = m.chat === "In Chat" ? `<button onclick="toggleChat(${index})" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded text-xs w-24 uppercase">In Chat</button>` : `<button onclick="toggleChat(${index})" class="bg-gray-700 text-gray-400 px-3 py-1.5 rounded text-xs w-24 uppercase">Out</button>`;
-                body.innerHTML += `
-                    <tr class="hover:bg-gray-900/40 transition border-b border-gray-800">
-                        <td class="p-3 text-yellow-500 font-bold font-mono">${m.id}</td>
-                        <td class="p-3 font-bold text-gray-200">${m.name}</td>
-                        <td class="p-3 text-center">
-                            <div class="flex items-center justify-center gap-1">
-                                <button onclick="updateDice(${index}, 1, -1)" class="bg-gray-800 px-1.5 rounded text-red-400 font-bold">-</button>
-                                <span class="w-6 font-bold text-white text-center">${d1}</span>
-                                <button onclick="updateDice(${index}, 1, 1)" class="bg-gray-800 px-1.5 rounded text-green-400 font-bold">+</button>
-                            </div>
-                        </td>
-                        <td class="p-3 text-center">
-                            <div class="flex items-center justify-center gap-1">
-                                <button onclick="updateDice(${index}, 2, -1)" class="bg-gray-800 px-1.5 rounded text-red-400 font-bold">-</button>
-                                <span class="w-6 font-bold text-white text-center">${d2}</span>
-                                <button onclick="updateDice(${index}, 2, 1)" class="bg-gray-800 px-1.5 rounded text-green-400 font-bold">+</button>
-                            </div>
-                        </td>
-                        <td class="p-3 text-center">
-                            <div class="flex items-center justify-center gap-1">
-                                <button onclick="updateDice(${index}, 3, -1)" class="bg-gray-800 px-1.5 rounded text-red-400 font-bold">-</button>
-                                <span class="w-6 font-bold text-white text-center">${d3}</span>
-                                <button onclick="updateDice(${index}, 3, 1)" class="bg-gray-800 px-1.5 rounded text-green-400 font-bold">+</button>
-                            </div>
-                        </td>
-                        <td class="p-3 text-center">${chatBtn}</td>
-                        <td class="p-3 text-center">${statusBtn}</td>
-                    </tr>
-                `;
-            });
-        }
-        function applyFilters() { renderApp(); }
-    </script>
+if (m.status === "Confirmed") {
+statusBtn = <button onclick="toggleStatus(${index})" class="bg-green-600 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase text-white">Confirmed</button>; } else if (m.status === "Canceled") { statusBtn =<button onclick="toggleStatus(${index})" class="bg-orange-600 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase text-white"&gt;Canceled&lt;/button>;
+} else {
+statusBtn = <button onclick="toggleStatus(${index})" class="bg-red-600 text-white font-bold px-3 py-1.5 rounded text-xs w-28 uppercase">Pending</button>; } let chatBtn = m.chat === "In Chat" ?<button onclick="toggleChat(${index})" class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded text-xs w-24 uppercase"&gt;In Chat&lt;/button> : <button onclick="toggleChat(${index})" class="bg-gray-700 text-gray-400 px-3 py-1.5 rounded text-xs w-24 uppercase">Out</button>; body.innerHTML +=<tr><td class="p-3 font-mono text-yellow-500 font-bold">${m.id}&lt;/td&gt;&lt;td class="p-3 font-bold text-gray-100"&gt;${m.name}</td><td class="p-3 text-center"><button onclick="updateDice(${index},1,-1)" class="bg-gray-800 px-2 text-red-400"&gt;-&lt;/button&gt; ${m.day1} <button onclick="updateDice(${index},1,1)" class="bg-gray-800 px-2 text-green-400"&gt;+&lt;/button&gt;&lt;/td&gt;&lt;td class="p-3 text-center"&gt;&lt;button onclick="updateDice(${index},2,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day2} &lt;button onclick="updateDice(${index},2,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},3,-1)" class="bg-gray-800 px-2 text-red-400"&gt;-&lt;/button&gt; ${m.day3} <button onclick="updateDice(${index},3,1)" class="bg-gray-800 px-2 text-green-400"&gt;+&lt;/button&gt;&lt;/td&gt;&lt;td class="p-3 text-center"&gt;${chatBtn}</td><td class="p-3 text-center">${statusBtn}&lt;/td&gt;&lt;/tr>;
+});
+}
+function applyFilters() { renderApp(); }
+</script>
 </body>
 </html>
