@@ -247,8 +247,7 @@
            if(socket && socket.connected) {
         socket.emit('update_commander_data', { commander_id: member.id, field: 'status', value: nextStatus });
            }
-       }
-        renderApp();
+           renderApp();
        }
         function toggleChat(index) {
             let member = eventsData[currentEvent][index];
