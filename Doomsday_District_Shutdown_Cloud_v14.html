@@ -236,8 +236,16 @@
         }
         function toggleStatus(index) {
             let member = eventsData[currentEvent][index];
-            member.status = member.status === "Pending" ? "Confirmed" : "Pending";
-            if(socket && socket.connected) socket.emit('update_commander_data', { commander_id: member.id, field: 'status', value: member.status });
+            if (member.status === "Pending") {
+                member.status = "Confirmed";
+            } else if (member.status === "Confirmed") {
+                member.status = "Canceled";
+            } else {
+                member.status = "Pending";
+            }
+            if (socket && socket.connected) {
+                socket.emit("update_commander_data", { commander_id: member.id, field: "status", value: member.status });
+            }
             renderApp();
         }
         function toggleChat(index) {
