@@ -240,6 +240,8 @@
                 member.status = "Confirmed";
             } else if (member.status === "Confirmed") {
                 member.status = "Canceled";
+            } else if (member.status === "Canceled") {
+                nextStatus = "Waitlist";
             } else {
                 member.status = "Pending";
             }
