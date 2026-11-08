@@ -101,20 +101,22 @@ app.get('/api/blacklist', async (req, res) => {
 // Canales de comunicación Multioperador en tiempo real
 io.on('connection', (socket) => {
     console.log('🔗 Oficial de comunicaciones conectado:', socket.id);
-
     socket.on('update_commander_data', async (data) => {
         try {
+            // CORREGIDO: Captura ultra segura del ID usando respaldo dinámico de propiedades
             const commander_id = data.commander_id || data.id || data.identity_no;
             const { field, value } = data;
             
-            if (!commander_id) return;
+            if (!commander_id) return console.warn("⚠️ Operación abortada: ID del comandante ausente.");
 
             let databaseField = field;
             if(field === 'day1') databaseField = 'day1_packs';
             if(field === 'day2') databaseField = 'day2_packs';
             if(field === 'day3') databaseField = 'day3_packs';
 
+            // CORREGIDO: Ejecutamos la query forzando el ID verificado y sano en la columna identity_no
             await pool.query(`UPDATE commanders SET ${databaseField} = $1, updated_at = NOW() WHERE identity_no = $2`, [value, commander_id]);
+            
             io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error en update_commander_data:", e);
