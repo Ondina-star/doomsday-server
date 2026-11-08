@@ -19,7 +19,7 @@ const pool = new Pool({
 
 async function initDatabase() {
     try {
-        // CORREGIDO: Eliminamos el DROP TABLE destructivo e inyectamos IF NOT EXISTS para que Render arranque al instante sin bucles
+        // CORREGIDO EN KHAN: Estructura limpia. Eliminamos la query INSERT redundante que congelaba el hilo asíncrono de arranque en Render
         await pool.query(`
             CREATE TABLE IF NOT EXISTS events (
                 id SERIAL PRIMARY KEY,
@@ -41,12 +41,13 @@ async function initDatabase() {
                 reason TEXT
             );
         `);
-        await pool.query("INSERT INTO events (event_date) VALUES ('2026-11-06') ON CONFLICT DO NOTHING;");
+        
         console.log("🔥 Base de datos validada y lista para operar de forma permanente.");
     } catch (err) {
         console.error("❌ Error inicializando:", err.message);
     }
 }
+
 
 initDatabase();
 
