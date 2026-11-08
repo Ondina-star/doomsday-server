@@ -199,6 +199,14 @@
                             day3: parseInt(m.day3) || 0
                         });
                     });
+                    // CORREGIDO: En cuanto los datos cargan con éxito, forzamos el estado a OK y abrimos el panel de inmediato
+                    const loginBtn = document.querySelector("button[onclick='checkAuth()']");
+                    if (loginBtn) {
+                        loginBtn.innerText = "OK";
+                    }
+                    document.getElementById("login-screen").classList.add("hidden");
+                    document.getElementById("main-panel").classList.remove("hidden");
+                    
                     renderApp();
                 })
                 .catch(e => console.error("❌ Error de red:", e));
