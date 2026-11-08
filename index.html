@@ -160,26 +160,20 @@
         };
         let blacklist = [{ id: "ID-6666", name: "Traitor_X" }];
         function initSocketConnection() {
-            try {
-                socket = io(SERVER_URL);
-                socket.on('connect', () => {
-                    document.getElementById("network-status").innerText = "CONNECTED IN REAL-TIME";
-                    document.getElementById("network-status").className = "text-green-400 font-bold";
-                    fetchDataFromServer();
-                });
-                socket.on('disconnect', () => {
-                    document.getElementById("network-status").innerText = "OFFLINE - RECONNECTING...";
-                    document.getElementById("network-status").className = "text-red-400 font-bold";
-                });
-                socket.on('commander_synchronized', () => { 
-                    setTimeout(() => { fetchDataFromServer(); }, 5000); 
-                });
-                socket.on('error_notification', (err) => { alert(err.message); });
-            } catch (e) {
-                document.getElementById("network-status").innerText = "LOCAL MODE (NO CLOUD ENDPOINT CONNECTED)";
-                document.getElementById("network-status").className = "text-orange-400 font-bold";
-            }
+            if (socket && socket.connected) return;
+            socket = io(SERVER_URL);
+            
+            socket.on('connect', () => {
+                console.log("🔗 Conexión de sockets activa.");
+                fetchDataFromServer();
+            });
+
+            // CORREGIDO EN KHAN: Eliminamos el setTimeout que forzaba a fetchDataFromServer() en mitad de una edición local, impidiendo que la respuesta cloud borre al comandante modificado
+            socket.on('commander_synchronized', () => {
+                console.log("🔄 Sincronización en la nube completada.");
+            });
         }
+
         function fetchDataFromServer() {
             fetch(`${SERVER_URL}/api/commanders`)
                 .then(res => res.json())
