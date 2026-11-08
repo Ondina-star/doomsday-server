@@ -64,12 +64,19 @@ async function initDatabase() {
 }
 app.get('/api/commanders', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM commanders ORDER BY id ASC");
+        // CORREGIDO EN PASO A PASO: Forzamos la inyección estática de la fecha en la API para asegurar la sincronización perfecta
+        const queryText = `
+            SELECT id, name, status, chat, day1, day2, day3, '2026-11-06' AS event_date 
+            FROM commanders 
+            ORDER BY id ASC
+        `;
+        const result = await pool.query(queryText);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 app.get('/api/blacklist', async (req, res) => {
     try {
