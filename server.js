@@ -71,13 +71,21 @@ initDatabase();
 // Rutas de inicio rápido para sincronizar los navegadores
 app.get('/api/commanders', async (req, res) => {
     try {
-        const result = await pool.query('SELECT identity_no AS id, commander_name AS name, day1_packs AS day1, day2_packs AS day2, day3_packs AS day3, status, chat FROM commanders ORDER BY identity_no ASC');
+        // CORREGIDO CON JOIN: Extraemos la fecha real (event_date) mapeando las tablas para que el panel web sepa en qué cajón pintar cada miembro
+        const queryText = `
+            SELECT c.identity_no AS id, c.commander_name AS name, 
+                   c.day1_packs AS day1, c.day2_packs AS day2, c.day3_packs AS day3, 
+                   c.status, c.chat, e.event_date
+            FROM commanders c
+            INNER JOIN events e ON c.event_id = e.id
+            ORDER BY c.identity_no ASC
+        `;
+        const result = await pool.query(queryText);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
-
 app.get('/api/blacklist', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM blacklist ORDER BY id DESC');
