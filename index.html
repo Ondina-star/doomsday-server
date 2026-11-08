@@ -186,21 +186,22 @@
                 .then(data => {
                     if (!Array.isArray(data)) return;
                     
-                    // 1. Inicializamos el almacén de forma limpia para este refresco
+                    // CORREGIDO EN KHAN: Preservamos los eventos creados locales para evitar que desaparezcan si están vacíos al recargar
+                    const backupEvents = Object.keys(eventsData);
                     eventsData = {};
-                    if (!eventsData[currentEvent]) eventsData[currentEvent] =;
+                    
+                    // Restauramos las fechas base existentes para que el selector no se rompa
+                    backupEvents.forEach(ev => { eventsData[ev] = []; });
+                    if (!eventsData[currentEvent]) eventsData[currentEvent] = [];
 
-                    // 2. Agrupamos de forma inteligente y dinámica a cada miembro en su evento real de Render
+                    // Agrupamos de forma inteligente cada miembro en su evento real sin destruir nada
                     data.forEach(m => {
                         let evKey = m.event_date ? m.event_date.trim() : currentEvent;
-                        
-                        if (!eventsData[evKey]) {
-                            eventsData[evKey] =;
-                        }
+                        if (!eventsData[evKey]) eventsData[evKey] = [];
                         
                         eventsData[evKey].push({
-                            id: m.id,
-                            name: m.name,
+                            id: m.id || m.identity_no,
+                            name: m.name || m.commander_name,
                             status: m.status || "Pending",
                             chat: m.chat || "Out",
                             day1: parseInt(m.day1) || 0,
@@ -216,7 +217,7 @@
             fetch(`${SERVER_URL}/api/blacklist`)
                 .then(res => res.json())
                 .then(data => {
-                    blacklist = Array.isArray(data) ? data :;
+                    blacklist = Array.isArray(data) ? data : [];
                     renderApp();
                 })
                 .catch(e => console.error("❌ Error en lista negra:", e));
