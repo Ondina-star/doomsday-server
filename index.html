@@ -171,7 +171,9 @@
                     document.getElementById("network-status").innerText = "OFFLINE - RECONNECTING...";
                     document.getElementById("network-status").className = "text-red-400 font-bold";
                 });
-                socket.on('commander_synchronized', () => { fetchDataFromServer(); });
+                socket.on('commander_synchronized', () => { 
+                    setTimeout(() => { fetchDataFromServer(); }, 500); 
+                });
                 socket.on('error_notification', (err) => { alert(err.message); });
             } catch (e) {
                 document.getElementById("network-status").innerText = "LOCAL MODE (NO CLOUD ENDPOINT CONNECTED)";
