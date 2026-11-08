@@ -214,8 +214,7 @@
             if (u === AUTH_USER && p === AUTH_PASS) {
                 document.getElementById("login-screen").classList.add("hidden");
                 document.getElementById("main-panel").classList.remove("hidden");
-                initSocketConnection();
-                renderApp();
+                initSocketConnection(); // 👈 La conexión llamará a la descarga y pintará la pantalla a su tiempo
             } else {
                 document.getElementById("login-error").classList.remove("hidden");
             }
