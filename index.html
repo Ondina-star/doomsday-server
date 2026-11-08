@@ -186,16 +186,28 @@
                 .then(data => {
                     if (!Array.isArray(data)) return;
                     
-                    // CORREGIDO: Mapeamos los datos en una variable temporal y SOLO sobreescribimos cuando la descarga sea 100% exitosa
-                    eventsData[currentEvent] = data.map(m => ({
-                        id: m.id || m.identity_no,
-                        name: m.name || m.commander_name,
-                        status: m.status || "Pending",
-                        chat: m.chat || "Out",
-                        day1: m.day1 !== undefined ? m.day1 : (m.day1_packs !== undefined ? m.day1_packs : 0),
-                        day2: m.day2 !== undefined ? m.day2 : (m.day2_packs !== undefined ? m.day2_packs : 0),
-                        day3: m.day3 !== undefined ? m.day3 : (m.day3_packs !== undefined ? m.day3_packs : 0)
-                    }));
+                    // 1. Inicializamos el almacén de forma limpia para este refresco
+                    eventsData = {};
+                    if (!eventsData[currentEvent]) eventsData[currentEvent] =;
+
+                    // 2. Agrupamos de forma inteligente y dinámica a cada miembro en su evento real de Render
+                    data.forEach(m => {
+                        let evKey = m.event_date ? m.event_date.trim() : currentEvent;
+                        
+                        if (!eventsData[evKey]) {
+                            eventsData[evKey] =;
+                        }
+                        
+                        eventsData[evKey].push({
+                            id: m.id,
+                            name: m.name,
+                            status: m.status || "Pending",
+                            chat: m.chat || "Out",
+                            day1: parseInt(m.day1) || 0,
+                            day2: parseInt(m.day2) || 0,
+                            day3: parseInt(m.day3) || 0
+                        });
+                    });
                     
                     renderApp();
                 })
@@ -204,7 +216,7 @@
             fetch(`${SERVER_URL}/api/blacklist`)
                 .then(res => res.json())
                 .then(data => {
-                    blacklist = Array.isArray(data) ? data : [];
+                    blacklist = Array.isArray(data) ? data :;
                     renderApp();
                 })
                 .catch(e => console.error("❌ Error en lista negra:", e));
