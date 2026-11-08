@@ -56,13 +56,14 @@ async function initDatabase() {
         await pool.query(`UPDATE commanders SET day3_packs = 0 WHERE day3_packs IS NULL;`);
         console.log("✅ Tablas de contingencia validadas en la nube.");
 
-        // 2. CORREGIDO: Aseguramos la existencia del evento oficial del 06 de Noviembre para evitar que el INNER JOIN devuelva listas vacías
+        // 2. CORREGIDO: Registramos el evento base de Noviembre para que coincida con tu panel web al arrancar
         const eventCheckNov = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
         if (eventCheckNov.rows.length === 0) {
             await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
             console.log("📅 Evento base del 06 de Noviembre registrado con éxito.");
         }
 
+        // 3. Registramos el evento de Diciembre de respaldo
         const eventCheckDec = await pool.query("SELECT id FROM events WHERE event_date = '2026-12-02' LIMIT 1");
         if (eventCheckDec.rows.length === 0) {
             await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-12-02')");
@@ -75,23 +76,15 @@ async function initDatabase() {
 initDatabase();
 
 // Rutas de inicio rápido para sincronizar los navegadores
-app.get('/api/events', async (req, res) => {
-    try {
-        const result = await pool.query("SELECT TO_CHAR(event_date, 'YYYY-MM-DD') AS id, event_name AS name FROM events ORDER BY event_date ASC");
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 app.get('/api/commanders', async (req, res) => {
     try {
-        // CORREGIDO CON TIMEZONE UTC: Forzamos la extracción pura en formato YYYY-MM-DD bloqueando desajustes de horas en el móvil
+        // CORREGIDO CON LEFT JOIN Y TIMEZONE UTC: Evita que se descarten filas si el evento no coincide y bloquea desfases de horas
         const queryText = `
             SELECT c.identity_no AS id, c.commander_name AS name, 
                    c.day1_packs AS day1, c.day2_packs AS day2, c.day3_packs AS day3, 
                    c.status, c.chat, TO_CHAR(e.event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS event_date
             FROM commanders c
-            INNER JOIN events e ON c.event_id = e.id
+            LEFT JOIN events e ON c.event_id = e.id
             ORDER BY c.identity_no ASC
         `;
         const result = await pool.query(queryText);
@@ -113,22 +106,13 @@ app.get('/api/blacklist', async (req, res) => {
 // Canales de comunicación Multioperador en tiempo real
 io.on('connection', (socket) => {
     console.log('🔗 Oficial de comunicaciones conectado:', socket.id);
-    socket.on('add_new_event_cloud', async (data) => {
-        try {
-            const { date } = data;
-            await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', $1) ON CONFLICT DO NOTHING", [date]);
-            io.emit('event_synchronized');
-        } catch (e) {
-            console.error("❌ Error guardando evento en la nube:", e);
-        }
-    });
+
     socket.on('update_commander_data', async (data) => {
         try {
-            // CORREGIDO EN KHAN: Aseguramos la captura del ID correcto usando un respaldo dinámico de variables
             const commander_id = data.commander_id || data.id || data.identity_no;
             const { field, value } = data;
             
-            if (!commander_id) return console.warn("⚠️ Operación abortada: ID de comandante ausente.");
+            if (!commander_id) return;
 
             if (field === 'status' && value === 'Confirmed') {
                 const countRes = await pool.query("SELECT COUNT(*) FROM commanders WHERE status = 'Confirmed'");
@@ -143,35 +127,30 @@ io.on('connection', (socket) => {
             if(field === 'day2') databaseField = 'day2_packs';
             if(field === 'day3') databaseField = 'day3_packs';
 
-            // Forzamos la actualización inyectando el ID saneado
             await pool.query(`UPDATE commanders SET ${databaseField} = $1, updated_at = NOW() WHERE identity_no = $2`, [value, commander_id]);
-            
             io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error en update_commander_data:", e);
         }
     });
 
-        socket.on('add_new_commander_cloud', async (data) => {
+    socket.on('add_new_commander_cloud', async (data) => {
         try {
             const id = data.id || data.commander_id || data.identity_no;
             const { name } = data;
             
-            if (!id || !name) return console.warn("⚠️ Registro abortado: Faltan campos críticos (ID o Nombre).");
+            if (!id || !name) return;
 
-            // 1. Buscamos el último evento registrado en PostgreSQL
+            // Buscamos el último evento registrado de forma segura
             let eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
-            
-            // 2. Si no hay eventos, creamos el base de noviembre de contingencia inmediata
             if (eventRes.rows.length === 0) {
                 await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
                 eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
             }
             
-            // CORREGIDO DEFINITIVO: Acceso estricto al índice cero rows[0].id para evitar que el ID viaje vacío o indefinido
+            // CORREGIDO: Sintaxis de arreglo perfecta para Node-Postgres
             const eventId = eventRes.rows[0].id;
             
-            // 3. Inserción blindada en PostgreSQL en la nube de Render
             await pool.query(
                 'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                 [eventId, id, name]
