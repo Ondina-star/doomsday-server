@@ -172,7 +172,7 @@
                     document.getElementById("network-status").className = "text-red-400 font-bold";
                 });
                 socket.on('commander_synchronized', () => { 
-                    setTimeout(() => { fetchDataFromServer(); }, 500); 
+                    setTimeout(() => { fetchDataFromServer(); }, 2500); 
                 });
                 socket.on('error_notification', (err) => { alert(err.message); });
             } catch (e) {
