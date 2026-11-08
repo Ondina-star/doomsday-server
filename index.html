@@ -165,11 +165,9 @@
             
             socket.on('connect', () => {
                 console.log("🔗 Conexión de sockets activa.");
-                // INYECCIÓN DE SEGURIDAD: El disparador real muta el botón a OK y abre el panel
-                const loginBtn = document.querySelector("button[onclick='checkAuth()']");
-                if (loginBtn) loginBtn.innerText = "OK";
-                document.getElementById("login-screen").classList.add("hidden");
-                document.getElementById("main-panel").classList.remove("hidden");
+                // CORREGIDO: Eliminamos los duplicados del login y actualizamos directamente el letrero del panel a OK al conectar con éxito
+                const statusEl = document.getElementById("cloud-status") || document.getElementById("network-status") || document.querySelector(".cloud-status-text");
+                if (statusEl) statusEl.innerText = "OK";
                 
                 fetchDataFromServer();
             });
