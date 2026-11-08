@@ -323,7 +323,7 @@
             closeModal("clone-modal");
             renderApp();
         }
-        function toggleStatus(idKey) {
+                function toggleStatus(idKey) {
             let list = eventsData[currentEvent] || [];
             let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
             if (!realMember) return;
@@ -345,6 +345,7 @@
             let list = eventsData[currentEvent] || [];
             let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
             if (!realMember) return;
+            
             realMember.chat = realMember.chat === "In Chat" ? "Out" : "In Chat";
             if (socket && socket.connected) {
                 socket.emit('update_commander_data', { commander_id: idKey, field: 'chat', value: realMember.chat });
@@ -368,6 +369,7 @@
             }
             renderApp();
         }
+
         function switchEvent() { currentEvent = document.getElementById("event-selector").value; renderApp(); }
         function setFilter(type) { activeFilter = type; renderApp(); }
 
