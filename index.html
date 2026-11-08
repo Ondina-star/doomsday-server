@@ -186,12 +186,13 @@
                 .then(data => {
                     if (!Array.isArray(data)) return;
                     
-                    // UNIFICACIÓN MECÁNICA: Forzamos el volcado limpio de propiedades id y name puras
+                    // CORREGIDO EN KHAN: Forzamos la limpieza y apuntamos directo a la pestaña activa de la pantalla
                     eventsData = {};
                     eventsData[currentEvent] = [];
 
                     data.forEach(m => {
-                        let evKey = m.event_date ? m.event_date.trim() : currentEvent;
+                        // Obligamos a que el bucle los agrupe en la pestaña abierta actual para evitar que los descarte por discrepancia de fechas
+                        let evKey = currentEvent;
                         if (!eventsData[evKey]) eventsData[evKey] = [];
                         
                         eventsData[evKey].push({
