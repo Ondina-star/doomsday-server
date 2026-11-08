@@ -350,7 +350,7 @@
         function renderApp() {
             const body = document.getElementById("member-table-body");
             body.innerHTML = "";
-            let list = eventsData[currentEvent] ||;
+            let list = eventsData[currentEvent] || [];
             let searchQuery = document.getElementById("search-input").value.toLowerCase();
             let cutoffVal = document.getElementById("pack-cutoff-input").value;
             let checkCutoff = cutoffVal !== "";
