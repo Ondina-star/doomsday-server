@@ -358,9 +358,7 @@
             const body = document.getElementById("member-table-body");
             if(!body) return;
             body.innerHTML = "";
-            
-            // CORREGIDO: Añadido el cierre del operador lógico con corchetes vacíos para evitar que se rompa el script
-            let list = eventsData[currentEvent] || [];
+            let list = eventsData[currentEvent] ||;
             
             let searchEl = document.getElementById("search-input");
             let searchQuery = searchEl ? searchEl.value.toLowerCase().trim() : "";
@@ -384,7 +382,11 @@
             }
             
             list.forEach((m, index) => {
-                let totalPacks = (m.day1 || 0) + (m.day2 || 0) + (m.day3 || 0);
+                // CORREGIDO: Forzamos la conversión estricta a número entero (parseInt) admitiendo ambos nombres de columna para evitar fallos matemáticos (NaN)
+                let d1 = parseInt(m.day1 !== undefined ? m.day1 : m.day1_packs) || 0;
+                let d2 = parseInt(m.day2 !== undefined ? m.day2 : m.day2_packs) || 0;
+                let d3 = parseInt(m.day3 !== undefined ? m.day3 : m.day3_packs) || 0;
+                let totalPacks = d1 + d2 + d3;
                 
                 let rawId = m.id || m.identity_no || "";
                 let rawName = m.name || m.commander_name || "";
@@ -408,7 +410,7 @@
                 let statusBtn = (currentStatus === "confirmed") ? `<button onclick="toggleStatus(${index})" class="bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-emerald-900/60 shadow">Confirmed</button>` : ((currentStatus === "canceled") ? `<button onclick="toggleStatus(${index})" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-slate-700/60 shadow">Canceled</button>` : ((currentStatus === "waitlist") ? `<button onclick="toggleStatus(${index})" class="bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-cyan-900/60 shadow">Waitlist</button>` : `<button onclick="toggleStatus(${index})" class="bg-rose-950/60 border border-rose-800/40 text-rose-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-rose-900/60 shadow">Pending</button>`));
                 let chatBtn = (currentChat === "in chat") ? `<button onclick="toggleChat(${index})" class="bg-blue-950/60 border border-blue-500/40 text-blue-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-blue-900/60 shadow">In Chat</button>` : `<button onclick="toggleChat(${index})" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-slate-700/60 shadow">Out</button>`;
                 
-                body.innerHTML += `<tr><td class="p-3 font-mono text-yellow-500 font-bold">${safeId}</td><td class="p-3 font-bold text-gray-100">${safeName}</td><td class="p-3 text-center"><button onclick="updateDice(${index},1,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day1 || 0} <button onclick="updateDice(${index},1,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},2,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day2 || 0} <button onclick="updateDice(${index},2,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},3,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day3 || 0} <button onclick="updateDice(${index},3,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center">${chatBtn}</td><td class="p-3 text-center">${statusBtn}</td></tr>`;
+                body.innerHTML += `<tr><td class="p-3 font-mono text-yellow-500 font-bold">${safeId}</td><td class="p-3 font-bold text-gray-100">${safeName}</td><td class="p-3 text-center"><button onclick="updateDice(${index},1,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${d1} <button onclick="updateDice(${index},1,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},2,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${d2} <button onclick="updateDice(${index},2,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},3,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${d3} <button onclick="updateDice(${index},3,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center">${chatBtn}</td><td class="p-3 text-center">${statusBtn}</td></tr>`;
             });
         }
         function applyFilters() { renderApp(); }
