@@ -356,6 +356,18 @@
         }
         function switchEvent() { currentEvent = document.getElementById("event-selector").value; renderApp(); }
         function setFilter(type) { activeFilter = type; renderApp(); }
+        () vieja que me mandaste por esta versión blindada de alta seguridad [Core Structure & Scannability, Creative Writing & Text Generation]:
+javascript
+        // ☢️ FUNCIÓN AUXILIAR DE SEGURIDAD: Sanea caracteres especiales (corchetes, símbolos de clan, etc.) para evitar bloqueos en el HTML
+        function escapeHTML(str) {
+            if (!str) return "";
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
         function renderApp() {
             const body = document.getElementById("member-table-body");
             body.innerHTML = "";
@@ -370,16 +382,24 @@
             const listUI = document.getElementById("blacklist-ui-list");
             if(listUI) {
                 listUI.innerHTML = "";
-                blacklist.forEach(b => { listUI.innerHTML += `<li>☠️ <strong>${b.id}</strong> - Blacklisted</li>`; });
+                blacklist.forEach(b => { 
+                    listUI.innerHTML += `<li>☠️ <strong>${escapeHTML(b.id || b.identity_no)}</strong> - Blacklisted</li>`; 
+                });
             }
             
             list.forEach((m, index) => {
                 let totalPacks = (m.day1 || 0) + (m.day2 || 0) + (m.day3 || 0);
                 
-                if (searchQuery && !m.id.toLowerCase().includes(searchQuery) && !m.name.toLowerCase().includes(searchQuery)) return;
+                // CORREGIDO: Mapeo seguro cruzado para admitir tanto id/identity_no como name/commander_name
+                let rawId = m.id || m.identity_no || "";
+                let rawName = m.name || m.commander_name || "";
+                
+                let safeId = escapeHTML(rawId);
+                let safeName = escapeHTML(rawName);
+                
+                if (searchQuery && !safeId.toLowerCase().includes(searchQuery) && !safeName.toLowerCase().includes(searchQuery)) return;
                 if (checkCutoff && totalPacks >= maxCutoff) return;
                 
-                // CORREGIDO EN CONTROL: Forzamos la comparación a minúsculas para evitar que los filtros oculten las filas al cambiar de estado
                 let filterType = activeFilter.toLowerCase();
                 let currentStatus = (m.status || "Pending").toLowerCase();
                 let currentChat = (m.chat || "Out").toLowerCase();
@@ -393,7 +413,8 @@
                 let statusBtn = m.status === "Confirmed" ? `<button onclick="toggleStatus(${index})" class="bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-emerald-900/60 shadow">Confirmed</button>` : (m.status === "Canceled" ? `<button onclick="toggleStatus(${index})" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-slate-700/60 shadow">Canceled</button>` : (m.status === "Waitlist" ? `<button onclick="toggleStatus(${index})" class="bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-cyan-900/60 shadow">Waitlist</button>` : `<button onclick="toggleStatus(${index})" class="bg-rose-950/60 border border-rose-800/40 text-rose-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-rose-900/60 shadow">Pending</button>`));
                 let chatBtn = m.chat === "In Chat" ? `<button onclick="toggleChat(${index})" class="bg-blue-950/60 border border-blue-500/40 text-blue-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-blue-900/60 shadow">In Chat</button>` : `<button onclick="toggleChat(${index})" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-slate-700/60 shadow">Out</button>`;
                 
-                body.innerHTML += `<tr><td class="p-3 font-mono text-yellow-500 font-bold">${m.id}</td><td class="p-3 font-bold text-gray-100">${m.name}</td><td class="p-3 text-center"><button onclick="updateDice(${index},1,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day1} <button onclick="updateDice(${index},1,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},2,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day2} <button onclick="updateDice(${index},2,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},3,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day3} <button onclick="updateDice(${index},3,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center">${chatBtn}</td><td class="p-3 text-center">${statusBtn}</td></tr>`;
+                // CORREGIDO: Inyectamos las variables seguras 'safeId' y 'safeName' soldadas a la fila HTML
+                body.innerHTML += `<tr><td class="p-3 font-mono text-yellow-500 font-bold">${safeId}</td><td class="p-3 font-bold text-gray-100">${safeName}</td><td class="p-3 text-center"><button onclick="updateDice(${index},1,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day1} <button onclick="updateDice(${index},1,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},2,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day2} <button onclick="updateDice(${index},2,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center"><button onclick="updateDice(${index},3,-1)" class="bg-gray-800 px-2 text-red-400">-</button> ${m.day3} <button onclick="updateDice(${index},3,1)" class="bg-gray-800 px-2 text-green-400">+</button></td><td class="p-3 text-center">${chatBtn}</td><td class="p-3 text-center">${statusBtn}</td></tr>`;
             });
         }
         function applyFilters() { renderApp(); }
