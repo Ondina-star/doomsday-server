@@ -19,14 +19,13 @@ const pool = new Pool({
 
 async function initDatabase() {
     try {
-        // RESET TOTAL: Destruye las tablas viejas desalineadas y las crea de cero con el contrato de datos puro
-        await pool.query('DROP TABLE IF EXISTS commanders, blacklist, events CASCADE;');
+        // CORREGIDO: Eliminamos el DROP TABLE destructivo e inyectamos IF NOT EXISTS para que Render arranque al instante sin bucles
         await pool.query(`
-            CREATE TABLE events (
+            CREATE TABLE IF NOT EXISTS events (
                 id SERIAL PRIMARY KEY,
                 event_date VARCHAR(50) NOT NULL UNIQUE
             );
-            CREATE TABLE commanders (
+            CREATE TABLE IF NOT EXISTS commanders (
                 id VARCHAR(50) PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 event_date VARCHAR(50) NOT NULL,
@@ -36,18 +35,19 @@ async function initDatabase() {
                 day2 INT DEFAULT 0,
                 day3 INT DEFAULT 0
             );
-            CREATE TABLE blacklist (
+            CREATE TABLE IF NOT EXISTS blacklist (
                 id VARCHAR(50) PRIMARY KEY,
                 name VARCHAR(100),
                 reason TEXT
             );
         `);
         await pool.query("INSERT INTO events (event_date) VALUES ('2026-11-06') ON CONFLICT DO NOTHING;");
-        console.log("🔥 Base de datos reseteada y unificada al 100% en Render.");
+        console.log("🔥 Base de datos validada y lista para operar de forma permanente.");
     } catch (err) {
         console.error("❌ Error inicializando:", err.message);
     }
 }
+
 initDatabase();
 
 app.get('/api/commanders', async (req, res) => {
