@@ -17,63 +17,42 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// ==========================================
-// ☢️ AUTO-CREACIÓN DE TABLAS E INICIALIZACIÓN
-// ==========================================
 async function initDatabase() {
     try {
+        // RESET TOTAL: Destruye las tablas viejas desalineadas y las crea de cero con el contrato de datos puro
+        await pool.query('DROP TABLE IF EXISTS commanders, blacklist, events CASCADE;');
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS events (
+            CREATE TABLE events (
                 id SERIAL PRIMARY KEY,
-                event_name VARCHAR(100) DEFAULT 'CLOCKWORK_SHUTDOWN',
-                event_date DATE NOT NULL,
-                created_at TIMESTAMP DEFAULT NOW()
+                event_date VARCHAR(50) NOT NULL UNIQUE
             );
-            CREATE TABLE IF NOT EXISTS commanders (
-                identity_no VARCHAR(50) PRIMARY KEY,
-                event_id INTEGER,
-                commander_name VARCHAR(100) NOT NULL,
+            CREATE TABLE commanders (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                event_date VARCHAR(50) NOT NULL,
                 status VARCHAR(50) DEFAULT 'Pending',
-                day1_packs INTEGER DEFAULT 0,
-                day2_packs INTEGER DEFAULT 0,
-                day3_packs INTEGER DEFAULT 0,
                 chat VARCHAR(50) DEFAULT 'Out',
-                updated_at TIMESTAMP DEFAULT NOW()
+                day1 INT DEFAULT 0,
+                day2 INT DEFAULT 0,
+                day3 INT DEFAULT 0
             );
-            CREATE TABLE IF NOT EXISTS blacklist (
-                id SERIAL PRIMARY KEY,
-                identity_no VARCHAR(50) UNIQUE,
-                commander_name VARCHAR(100),
-                reason TEXT,
-                created_at TIMESTAMP DEFAULT NOW()
+            CREATE TABLE blacklist (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(100),
+                reason TEXT
             );
         `);
-        console.log("✅ Estructura PostgreSQL unificada y validada en Render.");
-
-        // Forzamos el registro del evento base del 06 de Noviembre
-        const eventCheck = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
-        if (eventCheck.rows.length === 0) {
-            await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
-            console.log("📅 Evento base del 06 de Noviembre registrado.");
-        }
+        await pool.query("INSERT INTO events (event_date) VALUES ('2026-11-06') ON CONFLICT DO NOTHING;");
+        console.log("🔥 Base de datos reseteada y unificada al 100% en Render.");
     } catch (err) {
-        console.error("❌ Error inicializando la Base de Datos:", err.message);
+        console.error("❌ Error inicializando:", err.message);
     }
 }
 initDatabase();
 
-// UNIFICADO: Ruta de descarga limpia blindada contra valores nulos de fecha de eventos
 app.get('/api/commanders', async (req, res) => {
     try {
-        // CORREGIDO EN TEXTO PLANO: Forzamos la fecha como un string estático para que PostgreSQL jamás envíe campos 'null' a tu móvil
-        const queryText = `
-            SELECT c.identity_no AS id, c.commander_name AS name, 
-                   c.day1_packs AS day1, c.day2_packs AS day2, c.day3_packs AS day3, 
-                   c.status, c.chat, '2026-11-06' AS event_date
-            FROM commanders c
-            ORDER BY c.identity_no ASC
-        `;
-        const result = await pool.query(queryText);
+        const result = await pool.query("SELECT * FROM commanders ORDER BY id ASC");
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -82,7 +61,7 @@ app.get('/api/commanders', async (req, res) => {
 
 app.get('/api/blacklist', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM blacklist ORDER BY id DESC');
+        const result = await pool.query("SELECT * FROM blacklist ORDER BY id DESC");
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -92,48 +71,29 @@ app.get('/api/blacklist', async (req, res) => {
 io.on('connection', (socket) => {
     console.log('🔗 Conectado:', socket.id);
 
+    socket.on('add_new_commander_cloud', async (data) => {
+        try {
+            const { id, name, event_date } = data;
+            if (!id || !name || !event_date) return;
+            await pool.query(
+                `INSERT INTO commanders (id, name, event_date, status, chat, day1, day2, day3) 
+                 VALUES ($1, $2, $3, 'Pending', 'Out', 0, 0, 0) 
+                 ON CONFLICT (id) DO UPDATE SET name = $2`, 
+                [id, name, event_date]
+            );
+            io.emit('commander_synchronized');
+        } catch (e) { console.error(e); }
+    });
+
     socket.on('update_commander_data', async (data) => {
         try {
             const { commander_id, field, value } = data;
             if (!commander_id || !field) return;
-
-            let databaseField = field;
-            if (field === 'day1') databaseField = 'day1_packs';
-            if (field === 'day2') databaseField = 'day2_packs';
-            if (field === 'day3') databaseField = 'day3_packs';
-
-            await pool.query(`UPDATE commanders SET ${databaseField} = $1, updated_at = NOW() WHERE identity_no = $2`, [value, commander_id]);
+            await pool.query(`UPDATE commanders SET ${field} = $1 WHERE id = $2`, [value, commander_id]);
             io.emit('commander_synchronized');
-        } catch (e) {
-            console.error("❌ Error en update_commander_data:", e);
-        }
+        } catch (e) { console.error(e); }
     });
-
-        socket.on('add_new_commander_cloud', async (data) => {
-        try {
-            const id = data.id || data.commander_id || data.identity_no;
-            const { name } = data;
-            if (!id || !name) return;
-
-            let eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
-            
-            // CORREGIDO EN TEXTO PLANO: Usamos .shift() para extraer la primera fila de la lista de forma indestructible sin usar corchetes con ceros
-            let primeraFila = eventRes.rows.shift();
-            let eventId = primeraFila ? primeraFila.id : 1;
-
-            await pool.query(
-                `INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) 
-                 VALUES ($1, $2, $3, 'Pending', 'Out', 0, 0, 0) 
-                 ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3`, 
-                [eventId, id, name]
-            );
-            io.emit('commander_synchronized');
-        } catch (e) {
-            console.error("❌ Error en add_new_commander_cloud:", e);
-        }
-    });
-
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log('☢️ Servidor Doomsday Online: ' + PORT); });
+server.listen(PORT, () => { console.log('☢️ Servidor Online: ' + PORT); });
