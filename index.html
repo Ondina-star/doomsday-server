@@ -186,28 +186,11 @@
                 .then(data => {
                     const listaLimpia = Array.isArray(data) ? data : [];
                     
-                    // Limpiamos el contenedor para reescribir con datos frescos de la nube
-                    eventsData = {};
-                    
-                    listaLimpia.forEach(m => {
-                        // Extraemos la fecha real del servidor
-                        let evKey = m.event_date ? m.event_date.split('T')[0] : currentEvent;
-                        
-                        // Si el panel arranca ciego, se auto-sincroniza con el evento real del servidor
-                        if (listaLimpia.length > 0 && currentEvent === "2026-11-06") {
-                            currentEvent = evKey;
-                            const selector = document.getElementById("event-selector");
-                            if (selector && !selector.querySelector(`option[value="${evKey}"]`)) {
-                                selector.innerHTML += `<option value="${evKey}">DEPLOYMENT: ${evKey}</option>`;
-                                selector.value = evKey;
-                            }
-                        }
+                    // ☢️ CORRECCIÓN INDESTRUCTIBLE: Sincroniza los datos directamente en el casillero actual sin borrar el objeto base
+                    eventsData[currentEvent] = [];
 
-                        if (!eventsData[evKey]) {
-                            eventsData[evKey] = [];
-                        }
-                        
-                        eventsData[evKey].push({
+                    listaLimpia.forEach(m => {
+                        eventsData[currentEvent].push({
                             id: m.id || m.identity_no,
                             name: m.name || m.commander_name,
                             status: m.status || "Pending",
@@ -217,10 +200,9 @@
                             day3: m.day3 !== undefined ? m.day3 : (m.day3_packs !== undefined ? m.day3_packs : 0)
                         });
                     });
-                    
                     renderApp();
                 })
-                .catch(e => console.error("❌ Error cargando comandantes:", e));
+                .catch(e => console.error("❌ Error en descarga:", e));
 
             fetch(`${SERVER_URL}/api/blacklist`)
                 .then(res => res.json())
@@ -228,7 +210,7 @@
                     blacklist = Array.isArray(data) ? data : [];
                     renderApp();
                 })
-                .catch(e => console.error("❌ Error cargando lista negra:", e));
+                .catch(e => console.error("❌ Error en lista negra:", e));
         }
         function checkAuth() {
             const u = document.getElementById("username").value;
