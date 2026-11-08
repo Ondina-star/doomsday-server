@@ -271,12 +271,21 @@
                 eventsData[currentEvent] = [];
             }
             
-            // CORREGIDO: Estructuramos el objeto local de forma idéntica a como lo devuelve el servidor (/api/commanders)
+            // 1. Inserción local inmediata en la interfaz
             eventsData[currentEvent].push({ id: id, name: name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" });
             
+            // 2. EMISIÓN CLOUD BLINDADA: Enviamos la señal por Socket si está listo
             if(socket && socket.connected) {
-                // Emitimos los datos limpios hacia el backend de Render
                 socket.emit('add_new_commander_cloud', { id: id, name: name });
+            } else {
+                // CONTINGENCIA DUAL: Si el Socket aún está negociando el enlace, forzamos el guardado directo por API HTTP
+                fetch(`${SERVER_URL}/api/commanders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name })
+                })
+                .then(() => { if(socket) socket.emit('add_new_commander_cloud', { id: id, name: name }); })
+                .catch(e => console.error("❌ Fallo de enlace HTTP alternativo:", e));
             }
             
             closeModal("add-member-modal");
