@@ -75,6 +75,14 @@ async function initDatabase() {
 initDatabase();
 
 // Rutas de inicio rápido para sincronizar los navegadores
+app.get('/api/events', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT TO_CHAR(event_date, 'YYYY-MM-DD') AS id, event_name AS name FROM events ORDER BY event_date ASC");
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 app.get('/api/commanders', async (req, res) => {
     try {
         // CORREGIDO CON TIMEZONE UTC: Forzamos la extracción pura en formato YYYY-MM-DD bloqueando desajustes de horas en el móvil
