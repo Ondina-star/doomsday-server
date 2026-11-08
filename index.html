@@ -237,17 +237,19 @@
         }
         function toggleStatus(index) {
             let member = eventsData[currentEvent][index];
+            let nextStatus = "Pending";
             if (member.status === "Pending") {
-                member.status = "Confirmed";
+                nextStatus = "Confirmed";
             } else if (member.status === "Confirmed") {
-                member.status = "Canceled";
+                nextStatus = "Canceled";
             } else if (member.status === "Canceled") {
-                member.status = "Waitlist";
+                nextStatus = "Waitlist";
             } else {
-                member.status = "Pending";
+                nextStatus = "Pending";
             }
+            member.status = nextStatus;
             if (socket && socket.connected) {
-                socket.emit("update_commander_data", { commander_id: member.id, field: "status", value: member.status });
+                socket.emit("update_commander_data", { commander_id: member.id, field: "status", value: nextStatus });
             }
             renderApp();
         }
