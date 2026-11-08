@@ -85,14 +85,29 @@ io.on('connection', (socket) => {
         } catch (e) { console.error(e); }
     });
 
-    socket.on('update_commander_data', async (data) => {
+        socket.on('update_commander_data', async (data) => {
         try {
-            const { commander_id, field, value } = data;
-            if (!commander_id || !field) return;
-            await pool.query(`UPDATE commanders SET ${field} = $1 WHERE id = $2`, [value, commander_id]);
+            // CORREGIDO EN CONTROL: Captura ultra segura del ID admitiendo todas las variantes para evitar que viaje vacío a PostgreSQL
+            const commander_id = data.commander_id || data.id || data.identity_no;
+            const { field, value } = data;
+            
+            if (!commander_id || !field) return console.warn("⚠️ Operación abortada: Faltan campos críticos.");
+
+            // Saneamos los nombres de los campos de paquetes para que coincidan con la base de datos limpia
+            let databaseField = field;
+            if (field === 'day1_packs') databaseField = 'day1';
+            if (field === 'day2_packs') databaseField = 'day2';
+            if (field === 'day3_packs') databaseField = 'day3';
+
+            // Actualización indestructible forzando el ID sano en la columna id
+            await pool.query(`UPDATE commanders SET ${databaseField} = $1 WHERE id = $2`, [value, commander_id]);
+            
             io.emit('commander_synchronized');
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error("❌ Error en update_commander_data:", e);
+        }
     });
+
 });
 
 const PORT = process.env.PORT || 3000;
