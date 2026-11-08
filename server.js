@@ -123,21 +123,23 @@ io.on('connection', (socket) => {
         try {
             const { id, name } = data;
             
-            // Buscamos el ID del evento de la base de datos de forma dinámica
+            // 1. Extraemos el evento activo de la tabla de forma correcta con el índice [0]
             const eventRes = await pool.query('SELECT id FROM events LIMIT 1');
             if(eventRes.rows.length > 0) {
-                const eventId = eventRes.rows[0].id;
+                const eventId = eventRes.rows[0].id; // 👈 CORREGIDO: Acceso seguro al primer registro
                 
-                // Inserción indestructible: Asegura que NINGÚN campo se quede nulo al recargar
+                // 2. Inserción blindada con los parámetros iniciales estables (0, 'Pending', 'Out')
                 await pool.query(
                     'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                     [eventId, id, name]
                 );
                 
                 io.emit('commander_synchronized');
+            } else {
+                console.warn("⚠️ No se encontró ningún evento base en la tabla de Render.");
             }
         } catch (e) {
-            console.error("❌ Error en add_new_commander_cloud:", e);
+            console.error("❌ Error crítico insertando comandante en la nube:", e);
         }
     });
     socket.on('blacklist_enforcement_cloud', async (data) => {
