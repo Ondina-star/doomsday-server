@@ -103,37 +103,41 @@ io.on('connection', (socket) => {
                 }
             }
 
+            // Traducimos los campos del panel web a las columnas reales de PostgreSQL
             let databaseField = field;
             if(field === 'day1') databaseField = 'day1_packs';
             if(field === 'day2') databaseField = 'day2_packs';
             if(field === 'day3') databaseField = 'day3_packs';
 
+            // Forzamos la actualización asegurando que identity_no reciba el ID correcto
             await pool.query(`UPDATE commanders SET ${databaseField} = $1, updated_at = NOW() WHERE identity_no = $2`, [value, commander_id]);
+            
+            // Avisamos a todos los paneles que descarguen la lista limpia
             io.emit('commander_synchronized');
         } catch (e) {
-            console.error(e);
+            console.error("❌ Error en update_commander_data:", e);
         }
     });
+
     socket.on('add_new_commander_cloud', async (data) => {
         try {
             const { id, name } = data;
             
-            // ☢️ CORRECCIÓN DE CONTINGENCIA: Buscamos un evento activo o usamos el ID 1 por defecto para evitar que se oculte por fechas cruzadas
-            let eventId = 1;
+            // Buscamos el ID del evento de la base de datos de forma dinámica
             const eventRes = await pool.query('SELECT id FROM events LIMIT 1');
             if(eventRes.rows.length > 0) {
-                eventId = eventRes.rows[0].id;
+                const eventId = eventRes.rows[0].id;
+                
+                // Inserción indestructible: Asegura que NINGÚN campo se quede nulo al recargar
+                await pool.query(
+                    'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
+                    [eventId, id, name]
+                );
+                
+                io.emit('commander_synchronized');
             }
-
-            // Inserción blindada con los parámetros fijos reparados
-            await pool.query(
-                'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
-                [eventId, id, name]
-            );
-            
-            io.emit('commander_synchronized');
         } catch (e) {
-            console.error("❌ Error crítico insertando comandante:", e);
+            console.error("❌ Error en add_new_commander_cloud:", e);
         }
     });
     socket.on('blacklist_enforcement_cloud', async (data) => {
