@@ -311,43 +311,52 @@
             if (!member) return;
             
             let nextStatus = "Pending";
-            if (member.status === "Pending") {
-                nextStatus = "Confirmed";
-            } else if (member.status === "Confirmed") {
-                nextStatus = "Canceled";
-            } else if (member.status === "Canceled") {
-                nextStatus = "Waitlist";
-            } else {
-                nextStatus = "Pending";
-            }
+            if (member.status === "Pending") nextStatus = "Confirmed";
+            else if (member.status === "Confirmed") nextStatus = "Canceled";
+            else if (member.status === "Canceled") nextStatus = "Waitlist";
+            else nextStatus = "Pending";
             
-            // Guardamos el cambio en caliente en la memoria local usando el ID único
             member.status = nextStatus;
             
             if (socket && socket.connected) {
-                // Enviamos la señal al servidor vinculada al ID único indestructible
-                socket.emit("update_commander_data", { commander_id: member.id, field: "status", value: nextStatus });
+                // CORREGIDO: Buscamos tanto id como identity_no para asegurar el enlace cloud
+                let targetId = member.id || member.identity_no;
+                socket.emit("update_commander_data", { commander_id: targetId, field: "status", value: nextStatus });
             }
             renderApp();
         }
+
         function toggleChat(index) {
-            let member = eventsData[currentEvent][index];
+            let list = eventsData[currentEvent] || [];
+            let member = list[index];
+            if (!member) return;
             member.chat = member.chat === "In Chat" ? "Out" : "In Chat";
-            if(socket && socket.connected) socket.emit('update_commander_data', { commander_id: member.id, field: 'chat', value: member.chat });
+            
+            if(socket && socket.connected) {
+                // CORREGIDO: Buscamos tanto id como identity_no para asegurar el enlace cloud
+                let targetId = member.id || member.identity_no;
+                socket.emit('update_commander_data', { commander_id: targetId, field: 'chat', value: member.chat });
+            }
             renderApp();
         }
+
         function updateDice(index, day, change) {
-            let member = eventsData[currentEvent][index];
+            let list = eventsData[currentEvent] || [];
+            let member = list[index];
+            if (!member) return;
+            
             let fieldName = day === 1 ? "day1" : (day === 2 ? "day2" : "day3");
             
-            if(day === 1) member.day1 = Math.max(0, member.day1 + change);
-            if(day === 2) member.day2 = Math.max(0, member.day2 + change);
-            if(day === 3) member.day3 = Math.max(0, member.day3 + change);
+            if(day === 1) member.day1 = Math.max(0, (member.day1 || 0) + change);
+            if(day === 2) member.day2 = Math.max(0, (member.day2 || 0) + change);
+            if(day === 3) member.day3 = Math.max(0, (member.day3 || 0) + change);
             
             let targetValue = day === 1 ? member.day1 : (day === 2 ? member.day2 : member.day3);
             
             if (socket && socket.connected) {
-                socket.emit('update_commander_data', { commander_id: member.id, field: fieldName, value: targetValue });
+                // CORREGIDO CRÍTICO: Garantizamos el envío del ID real (id o identity_no) al servidor de Render
+                let targetId = member.id || member.identity_no;
+                socket.emit('update_commander_data', { commander_id: targetId, field: fieldName, value: targetValue });
             }
             renderApp();
         }
