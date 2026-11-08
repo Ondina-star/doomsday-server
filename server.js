@@ -62,12 +62,6 @@ async function initDatabase() {
         console.error("❌ Error en segundo plano de base de datos:", err.message);
     }
 }
-
-
-// Ejecución controlada del búnker
-initDatabase();
-
-
 app.get('/api/commanders', async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM commanders ORDER BY id ASC");
