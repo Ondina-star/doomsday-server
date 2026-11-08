@@ -128,16 +128,21 @@ io.on('connection', (socket) => {
             const id = data.id || data.commander_id || data.identity_no;
             const { name } = data;
             
-            if (!id || !name) return;
+            if (!id || !name) return console.warn("⚠️ Registro abortado: Faltan campos críticos.");
 
+            // 1. Buscamos el último evento registrado en PostgreSQL
             let eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
+            
+            // 2. Si no hay eventos, creamos el base de noviembre de contingencia inmediata
             if (eventRes.rows.length === 0) {
                 await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
                 eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
             }
             
+            // CORREGIDO DEFINITIVO: Acceso real al índice cero del array de Node-Postgres
             const eventId = eventRes.rows[0].id;
             
+            // 3. Inserción blindada en PostgreSQL en la nube de Render
             await pool.query(
                 'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                 [eventId, id, name]
