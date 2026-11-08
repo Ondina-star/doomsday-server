@@ -119,7 +119,7 @@ io.on('connection', (socket) => {
             const { id, name } = data;
             const eventRes = await pool.query('SELECT id FROM events LIMIT 1');
             if(eventRes.rows.length > 0) {
-                // CORREGIDO: Guardamos los dados en 0 y los estados iniciales para que PostgreSQL no devuelva valores nulos
+                // CORREGIDO EN KHAN: Cambiado eventRes.rows.id por eventRes.rows[0].id para enlazar el evento real
                 await pool.query(
                     'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                     [eventRes.rows[0].id, id, name]
@@ -127,7 +127,7 @@ io.on('connection', (socket) => {
                 io.emit('commander_synchronized');
             }
         } catch (e) {
-            console.error(e);
+            console.error("❌ Error insertando comandante:", e);
         }
     });
     socket.on('blacklist_enforcement_cloud', async (data) => {
