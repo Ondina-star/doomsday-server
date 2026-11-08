@@ -124,8 +124,12 @@ io.on('connection', (socket) => {
     });
     socket.on('update_commander_data', async (data) => {
         try {
-            const { commander_id, field, value } = data;
+            // CORREGIDO EN KHAN: Aseguramos la captura del ID correcto usando un respaldo dinámico de variables
+            const commander_id = data.commander_id || data.id || data.identity_no;
+            const { field, value } = data;
             
+            if (!commander_id) return console.warn("⚠️ Operación abortada: ID de comandante ausente.");
+
             if (field === 'status' && value === 'Confirmed') {
                 const countRes = await pool.query("SELECT COUNT(*) FROM commanders WHERE status = 'Confirmed'");
                 if (parseInt(countRes.rows[0].count) >= 180) {
@@ -139,7 +143,9 @@ io.on('connection', (socket) => {
             if(field === 'day2') databaseField = 'day2_packs';
             if(field === 'day3') databaseField = 'day3_packs';
 
+            // Forzamos la actualización inyectando el ID saneado
             await pool.query(`UPDATE commanders SET ${databaseField} = $1, updated_at = NOW() WHERE identity_no = $2`, [value, commander_id]);
+            
             io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error en update_commander_data:", e);
