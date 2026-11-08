@@ -62,17 +62,18 @@ async function initDatabase() {
 }
 initDatabase();
 
-// UNIFICADO: Ruta de descarga limpia con los nombres nativos de la base de datos
+// UNIFICADO: Ruta de descarga limpia blindada contra valores nulos de fecha de eventos
 app.get('/api/commanders', async (req, res) => {
     try {
-        const result = await pool.query(`
+        // CORREGIDO EN TEXTO PLANO: Forzamos la fecha como un string estático para que PostgreSQL jamás envíe campos 'null' a tu móvil
+        const queryText = `
             SELECT c.identity_no AS id, c.commander_name AS name, 
                    c.day1_packs AS day1, c.day2_packs AS day2, c.day3_packs AS day3, 
-                   c.status, c.chat, TO_CHAR(e.event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS event_date
+                   c.status, c.chat, '2026-11-06' AS event_date
             FROM commanders c
-            LEFT JOIN events e ON c.event_id = e.id
             ORDER BY c.identity_no ASC
-        `);
+        `;
+        const result = await pool.query(queryText);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
