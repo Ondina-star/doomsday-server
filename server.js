@@ -56,9 +56,15 @@ async function initDatabase() {
         await pool.query(`UPDATE commanders SET day3_packs = 0 WHERE day3_packs IS NULL;`);
         console.log("✅ Tablas de contingencia validadas en la nube.");
 
-        // 2. Insertar automáticamente el primer evento del 2 de diciembre si está vacío
-        const eventCheck = await pool.query('SELECT id FROM events LIMIT 1');
-        if (eventCheck.rows.length === 0) {
+        // 2. CORREGIDO: Aseguramos la existencia del evento oficial del 06 de Noviembre para evitar que el INNER JOIN devuelva listas vacías
+        const eventCheckNov = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
+        if (eventCheckNov.rows.length === 0) {
+            await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
+            console.log("📅 Evento base del 06 de Noviembre registrado con éxito.");
+        }
+
+        const eventCheckDec = await pool.query("SELECT id FROM events WHERE event_date = '2026-12-02' LIMIT 1");
+        if (eventCheckDec.rows.length === 0) {
             await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-12-02')");
             console.log("📅 Evento base del 02 de Diciembre registrado.");
         }
@@ -71,11 +77,11 @@ initDatabase();
 // Rutas de inicio rápido para sincronizar los navegadores
 app.get('/api/commanders', async (req, res) => {
     try {
-        // CORREGIDO CON TO_CHAR: Convertimos la fecha a texto plano limpio YYYY-MM-DD en la base de datos para bloquear los fallos por zonas horarias en el móvil
+        // CORREGIDO CON TIMEZONE UTC: Forzamos la extracción pura en formato YYYY-MM-DD bloqueando desajustes de horas en el móvil
         const queryText = `
             SELECT c.identity_no AS id, c.commander_name AS name, 
                    c.day1_packs AS day1, c.day2_packs AS day2, c.day3_packs AS day3, 
-                   c.status, c.chat, TO_CHAR(e.event_date, 'YYYY-MM-DD') AS event_date
+                   c.status, c.chat, TO_CHAR(e.event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS event_date
             FROM commanders c
             INNER JOIN events e ON c.event_id = e.id
             ORDER BY c.identity_no ASC
@@ -86,6 +92,7 @@ app.get('/api/commanders', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 app.get('/api/blacklist', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM blacklist ORDER BY id DESC');
@@ -111,29 +118,23 @@ io.on('connection', (socket) => {
                 }
             }
 
-            // Traducimos los campos del panel web a las columnas reales de PostgreSQL
             let databaseField = field;
             if(field === 'day1') databaseField = 'day1_packs';
             if(field === 'day2') databaseField = 'day2_packs';
             if(field === 'day3') databaseField = 'day3_packs';
 
-            // Forzamos la actualización asegurando que identity_no reciba el ID correcto
             await pool.query(`UPDATE commanders SET ${databaseField} = $1, updated_at = NOW() WHERE identity_no = $2`, [value, commander_id]);
-            
-            // Avisamos a todos los paneles que descarguen la lista limpia
             io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error en update_commander_data:", e);
         }
     });
+
     socket.on('add_new_commander_cloud', async (data) => {
         try {
             const { id, name } = data;
             
-            // 1. Buscamos dinámicamente si ya existe el evento del 2026-11-06 en PostgreSQL
             let eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
-            
-            // 2. Si no existe ese evento de noviembre en tu base de datos cloud, lo creamos al vuelo
             if (eventRes.rows.length === 0) {
                 await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
                 eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
@@ -141,7 +142,6 @@ io.on('connection', (socket) => {
             
             const eventId = eventRes.rows[0].id;
             
-            // 3. Inserción blindada asignando el ID correcto del evento correspondiente
             await pool.query(
                 'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                 [eventId, id, name]
@@ -152,6 +152,7 @@ io.on('connection', (socket) => {
             console.error("❌ Error crítico insertando comandante en la nube:", e);
         }
     });
+
     socket.on('blacklist_enforcement_cloud', async (data) => {
         try {
             const { id, name, reason } = data;
