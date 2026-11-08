@@ -126,5 +126,13 @@ io.on('connection', (socket) => {
     });
 });
 
+// ==========================================
+// 🚀 ARRANQUE DE RED ACORAZADO PARA RENDER
+// ==========================================
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log('☢️ Servidor Online: ' + PORT); });
+
+// Forzamos al servidor HTTP a escuchar en la IP global 0.0.0.0 requerida para que Render valide el estado a LIVE al instante
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`☢️ Doomsday Servidor Online y Validado en Puerto: ${PORT}`);
+});
+
