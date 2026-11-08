@@ -84,31 +84,30 @@ io.on('connection', (socket) => {
             io.emit('commander_synchronized');
         } catch (e) { console.error(e); }
     });
-
-            socket.on('update_commander_data', async (data) => {
+    socket.on('update_commander_data', async (data) => {
         try {
-            const commander_id = data.commander_id || data.id || data.identity_no;
+            // CORREGIDO EN CONTROL: Forzamos la limpieza absoluta de espacios invisibles en el ID
+            const commander_id = String(data.commander_id || data.id || data.identity_no).trim();
             const { field, value } = data;
             
-            if (!commander_id || !field) return console.warn("⚠️ Operación abortada: Faltan campos críticos.");
+            if (!commander_id || !field) return console.warn("⚠️ Operación abortada: Parámetros insuficientes.");
 
             let databaseField = field;
             if (field === 'day1_packs') databaseField = 'day1';
             if (field === 'day2_packs') databaseField = 'day2';
             if (field === 'day3_packs') databaseField = 'day3';
 
-            // CORREGIDO EN KHAN: Saneamos el valor forzando la conversión a minúsculas si es una cadena de texto (como los estados 'confirmed', 'canceled', etc.) para que el filtro gráfico no se rompa al recargar
+            // Saneamos el valor forzando minúsculas y limpiando espacios si es un texto (como los estados 'confirmed')
             const safeValue = (typeof value === 'string') ? value.toLowerCase().trim() : value;
 
-            // Actualización indestructible forzando los campos normalizados en PostgreSQL
-            await pool.query(`UPDATE commanders SET ${databaseField} = $1 WHERE id = $2`, [safeValue, commander_id]);
+            // CORREGIDO EN CONTINGENCIA: Usamos TRIM(id) para que PostgreSQL ignore espacios invisibles y suelde el cambio en el disco duro real
+            await pool.query(`UPDATE commanders SET ${databaseField} = $1 WHERE TRIM(id) = $2`, [safeValue, commander_id]);
             
             io.emit('commander_synchronized');
         } catch (e) {
-            console.error("❌ Error en update_commander_data:", e);
+            console.error("❌ Error crítico en update_commander_data:", e);
         }
     });
-
 });
 
 const PORT = process.env.PORT || 3000;
