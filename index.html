@@ -233,14 +233,21 @@
             const id = document.getElementById("new-member-id").value.trim();
             const name = document.getElementById("new-member-name").value.trim();
             if(!id || !name) return;
+            
             if(blacklist.some(b => b.id === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
+            
             if (!eventsData[currentEvent]) {
                 eventsData[currentEvent] = [];
             }
-            eventsData[currentEvent].push({ id, name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" });
+            
+            // CORREGIDO: Estructuramos el objeto local de forma idéntica a como lo devuelve el servidor (/api/commanders)
+            eventsData[currentEvent].push({ id: id, name: name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" });
+            
             if(socket && socket.connected) {
-                socket.emit('add_new_commander_cloud', { id, name });
+                // Emitimos los datos limpios hacia el backend de Render
+                socket.emit('add_new_commander_cloud', { id: id, name: name });
             }
+            
             closeModal("add-member-modal");
             renderApp();
         }
