@@ -154,29 +154,29 @@ io.on('connection', (socket) => {
 
         socket.on('add_new_commander_cloud', async (data) => {
         try {
-            // Saneamos la captura de la identidad del comandante
             const id = data.id || data.commander_id || data.identity_no;
             const { name } = data;
             
             if (!id || !name) return console.warn("⚠️ Registro abortado: Faltan campos críticos (ID o Nombre).");
 
-            // CORREGIDO: Buscamos directamente el primer evento activo que ya esté registrado en la base de datos de Render
-            const eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
+            // 1. Buscamos dinámicamente si ya existe un evento activo en PostgreSQL
+            let eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
             
-            if (eventRes.rows.length > 0) {
-                // CORREGIDO CRÍTICO: Accedemos de forma segura a la propiedad 'id' usando el índice de arreglo [0]
-                const eventId = eventRes.rows[0].id;
-                
-                // Inserción física en PostgreSQL asegurando que ningún campo quede nulo
-                await pool.query(
-                    'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
-                    [eventId, id, name]
-                );
-                
-                io.emit('commander_synchronized');
-            } else {
-                console.warn("⚠️ Operación abortada: No se encontró ningún evento base en PostgreSQL.");
+            // 2. Si no hay ningún evento en la base de datos cloud, creamos uno de contingencia de inmediato
+            if (eventRes.rows.length === 0) {
+                await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
+                eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
             }
+            
+            const eventId = eventRes.rows[0].id;
+            
+            // 3. Inserción blindada en PostgreSQL usando el ID verificado de la tabla
+            await pool.query(
+                'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
+                [eventId, id, name]
+            );
+            
+            io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error crítico insertando comandante en la nube:", e);
         }
