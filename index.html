@@ -379,7 +379,9 @@
             const body = document.getElementById("member-table-body");
             if(!body) return;
             body.innerHTML = "";
-            let list = eventsData[currentEvent] ||;
+            
+            // CORREGIDO: Añadido el cierre del operador lógico con corchetes vacíos para evitar que se rompa el script
+            let list = eventsData[currentEvent] || [];
             
             let searchEl = document.getElementById("search-input");
             let searchQuery = searchEl ? searchEl.value.toLowerCase().trim() : "";
@@ -391,7 +393,6 @@
             
             const chatCountEl = document.getElementById("global-chat-count");
             if(chatCountEl) {
-                // Saneamiento de conteo global en minúsculas
                 chatCountEl.innerText = list.filter(m => (m.status || "").toLowerCase().trim() === "confirmed").length;
             }
             
@@ -415,7 +416,6 @@
                 if (searchQuery && !safeId.toLowerCase().includes(searchQuery) && !safeName.toLowerCase().includes(searchQuery)) return;
                 if (checkCutoff && totalPacks >= maxCutoff) return;
                 
-                // CORREGIDO EN CONTROL MÁXIMO: Forzamos el saneamiento absoluto a minúsculas y eliminamos espacios invisibles (.trim())
                 let filterType = activeFilter.toLowerCase().trim();
                 let currentStatus = (m.status || "Pending").toLowerCase().trim();
                 let currentChat = (m.chat || "Out").toLowerCase().trim();
@@ -426,7 +426,6 @@
                 if (filterType === "waitlist" && currentStatus !== "waitlist") return;
                 if (filterType === "in-chat" && currentChat !== "in chat") return;
                 
-                // Evaluamos los botones mapeando las dos posibilidades de mayúsculas/minúsculas para blindar la celda HTML
                 let statusBtn = (currentStatus === "confirmed") ? `<button onclick="toggleStatus(${index})" class="bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-emerald-900/60 shadow">Confirmed</button>` : ((currentStatus === "canceled") ? `<button onclick="toggleStatus(${index})" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-slate-700/60 shadow">Canceled</button>` : ((currentStatus === "waitlist") ? `<button onclick="toggleStatus(${index})" class="bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-cyan-900/60 shadow">Waitlist</button>` : `<button onclick="toggleStatus(${index})" class="bg-rose-950/60 border border-rose-800/40 text-rose-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-rose-900/60 shadow">Pending</button>`));
                 let chatBtn = (currentChat === "in chat") ? `<button onclick="toggleChat(${index})" class="bg-blue-950/60 border border-blue-500/40 text-blue-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-blue-900/60 shadow">In Chat</button>` : `<button onclick="toggleChat(${index})" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-slate-700/60 shadow">Out</button>`;
                 
