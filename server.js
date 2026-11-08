@@ -22,6 +22,18 @@ const pool = new Pool({
 app.get('/', (req, res) => {
     res.status(200).send("OK");
 });
+// ==========================================
+// 🚀 ARRANQUE INMEDIATO DE RED (PASO A LIVE)
+// ==========================================
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`☢️ Antenas encendidas. Doomsday Servidor escuchando en puerto: ${PORT}`);
+    initDatabase();
+});
+
+// ==========================================
+// 📦 INICIALIZACIÓN ASÍNCRONA DE LA BASE DE DATOS
+// ==========================================
 async function initDatabase() {
     try {
         await pool.query(`
@@ -45,19 +57,12 @@ async function initDatabase() {
                 reason TEXT
             );
         `);
-        
-        console.log("🔥 Base de datos validada y lista para operar de forma permanente.");
-        
-        // CORREGIDO EN KHAN: Encendemos las antenas del servidor ÚNICA Y ESTRICTAMENTE cuando la base de datos ya está lista. Esto quita el atasco en Render al instante.
-        const PORT = process.env.PORT || 3000;
-        server.listen(PORT, '0.0.0.0', () => {
-            console.log(`☢️ Doomsday Servidor Online y Validado en Puerto: ${PORT}`);
-        });
-
+        console.log("🔥 Base de datos validada y lista en segundo plano.");
     } catch (err) {
-        console.error("❌ Error inicializando:", err.message);
+        console.error("❌ Error en segundo plano de base de datos:", err.message);
     }
 }
+
 
 // Ejecución controlada del búnker
 initDatabase();
