@@ -204,14 +204,15 @@
             const name = document.getElementById("new-member-name").value.trim();
             if(!id || !name) return;
             if(blacklist.some(b => b.id === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
+            if (!eventsData[currentEvent]) {
+                eventsData[currentEvent] = [];
+            }
+            eventsData[currentEvent].push({ id, name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" });
             if(socket && socket.connected) {
                 socket.emit('add_new_commander_cloud', { id, name });
-                closeModal("add-member-modal");
-            } else {
-                eventsData[currentEvent].push({ id, name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" });
-                closeModal("add-member-modal");
-                renderApp();
             }
+            closeModal("add-member-modal");
+            renderApp();
         }
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
