@@ -184,9 +184,8 @@
             fetch(`${SERVER_URL}/api/commanders`)
                 .then(res => res.json())
                 .then(data => {
-                    // SANEAMIENTO: Nos aseguramos de que los datos sean un arreglo limpio y los inyectamos en el evento actual
                     eventsData[currentEvent] = Array.isArray(data) ? data : [];
-                    renderApp();
+                    renderApp(); // 👈 CRÍTICO: Obliga al panel a pintar los miembros descargados de Render
                 })
                 .catch(e => console.error("❌ Error cargando comandantes:", e));
 
@@ -194,7 +193,7 @@
                 .then(res => res.json())
                 .then(data => {
                     blacklist = Array.isArray(data) ? data : [];
-                    renderApp();
+                    renderApp(); // 👈 CRÍTICO: Obliga al panel a pintar la lista negra descargada de Render
                 })
                 .catch(e => console.error("❌ Error cargando lista negra:", e));
         }
