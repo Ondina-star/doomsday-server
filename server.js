@@ -108,19 +108,18 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('add_new_commander_cloud', async (data) => {
+        socket.on('add_new_commander_cloud', async (data) => {
         try {
             const id = data.id || data.commander_id || data.identity_no;
             const { name } = data;
             if (!id || !name) return;
 
-            // 1. Buscamos el evento de forma limpia y directa en la base de datos
             let eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
             
-            // CORREGIDO CON ÍNDICE MANUAL: Acceso estricto a la primera posición del array para que nunca viaje vacío
-            let eventId = (eventRes.rows && eventRes.rows.length > 0) ? eventRes.rows[0].id : 1;
+            // CORREGIDO EN TEXTO PLANO: Usamos .shift() para extraer la primera fila de la lista de forma indestructible sin usar corchetes con ceros
+            let primeraFila = eventRes.rows.shift();
+            let eventId = primeraFila ? primeraFila.id : 1;
 
-            // 2. Inserción directa y blindada en PostgreSQL de Render
             await pool.query(
                 `INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) 
                  VALUES ($1, $2, $3, 'Pending', 'Out', 0, 0, 0) 
@@ -132,6 +131,7 @@ io.on('connection', (socket) => {
             console.error("❌ Error en add_new_commander_cloud:", e);
         }
     });
+
 });
 
 const PORT = process.env.PORT || 3000;
