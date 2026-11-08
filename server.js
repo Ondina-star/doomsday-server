@@ -48,6 +48,7 @@ async function initDatabase() {
                 created_at TIMESTAMP DEFAULT NOW()
             );
         `);
+        await pool.query(`ALTER TABLE commanders ADD COLUMN IF NOT EXISTS chat VARCHAR(50) DEFAULT 'Out';`);
         console.log("✅ Tablas de contingencia validadas en la nube.");
 
         // 2. Insertar automáticamente el primer evento del 2 de diciembre si está vacío
