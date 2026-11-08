@@ -22,7 +22,6 @@ const pool = new Pool({
 // ==========================================
 async function initDatabase() {
     try {
-        // 1. Crear tablas si no existen
         await pool.query(`
             CREATE TABLE IF NOT EXISTS events (
                 id SERIAL PRIMARY KEY,
@@ -56,14 +55,14 @@ async function initDatabase() {
         await pool.query(`UPDATE commanders SET day3_packs = 0 WHERE day3_packs IS NULL;`);
         console.log("✅ Tablas de contingencia validadas en la nube.");
 
-        // 2. CORREGIDO: Registramos el evento base de Noviembre para que coincida con tu panel web al arrancar
+        // Registramos el evento base de Noviembre para que coincida con tu panel web
         const eventCheckNov = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
         if (eventCheckNov.rows.length === 0) {
             await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
             console.log("📅 Evento base del 06 de Noviembre registrado con éxito.");
         }
 
-        // 3. Registramos el evento de Diciembre de respaldo
+        // Registramos el evento de Diciembre de respaldo
         const eventCheckDec = await pool.query("SELECT id FROM events WHERE event_date = '2026-12-02' LIMIT 1");
         if (eventCheckDec.rows.length === 0) {
             await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-12-02')");
@@ -78,7 +77,6 @@ initDatabase();
 // Rutas de inicio rápido para sincronizar los navegadores
 app.get('/api/commanders', async (req, res) => {
     try {
-        // CORREGIDO CON LEFT JOIN Y TIMEZONE UTC: Evita que se descarten filas si el evento no coincide y bloquea desfases de horas
         const queryText = `
             SELECT c.identity_no AS id, c.commander_name AS name, 
                    c.day1_packs AS day1, c.day2_packs AS day2, c.day3_packs AS day3, 
@@ -116,7 +114,7 @@ io.on('connection', (socket) => {
 
             if (field === 'status' && value === 'Confirmed') {
                 const countRes = await pool.query("SELECT COUNT(*) FROM commanders WHERE status = 'Confirmed'");
-                if (parseInt(countRes.rows[0].count) >= 180) {
+                if (parseInt(countRes.rows.count) >= 180) {
                     socket.emit('error_notification', { message: '⚠️ CAPACIDAD MÁXIMA BLOQUEADA: El chat ya alcanzó el límite estricto de 180 comandantes.' });
                     return;
                 }
@@ -135,26 +133,21 @@ io.on('connection', (socket) => {
     });
 
     socket.on('add_new_commander_cloud', async (data) => {
-    socket.on('add_new_commander_cloud', async (data) => {
         try {
             const id = data.id || data.commander_id || data.identity_no;
             const { name } = data;
             
-            if (!id || !name) return console.warn("⚠️ Registro abortado: Faltan campos críticos.");
+            if (!id || !name) return;
 
-            // 1. Buscamos el último evento registrado en PostgreSQL
             let eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
-            
-            // 2. Si no hay eventos, creamos el base de noviembre de contingencia inmediata
             if (eventRes.rows.length === 0) {
                 await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
                 eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
             }
             
-            // CORREGIDO AL 100%: Acceso estricto al índice cero del array de la base de datos
+            // CORREGIDO CON ÍNDICE DE MATRIZ DE FORMA INDESTRUCTIBLE
             const eventId = eventRes.rows[0].id;
             
-            // 3. Inserción blindada en PostgreSQL en la nube de Render
             await pool.query(
                 'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                 [eventId, id, name]
