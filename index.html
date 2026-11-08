@@ -186,7 +186,6 @@
                 .then(data => {
                     const listaLimpia = Array.isArray(data) ? data : [];
                     
-                    // TRADUCTOR TÁCTICO: Mapeamos los campos del servidor al formato exacto del panel web
                     eventsData[currentEvent] = listaLimpia.map(m => ({
                         id: m.id || m.identity_no,
                         name: m.name || m.commander_name,
@@ -197,7 +196,7 @@
                         day3: m.day3 !== undefined ? m.day3 : (m.day3_packs !== undefined ? m.day3_packs : 0)
                     }));
                     
-                    renderApp();
+                    renderApp(); // 👈 CORREGIDO: Redibuja la tabla con los miembros descargados
                 })
                 .catch(e => console.error("❌ Error cargando comandantes:", e));
 
@@ -205,7 +204,7 @@
                 .then(res => res.json())
                 .then(data => {
                     blacklist = Array.isArray(data) ? data : [];
-                    renderApp();
+                    renderApp(); // 👈 CORREGIDO: Redibuja la lista negra al descargar
                 })
                 .catch(e => console.error("❌ Error cargando lista negra:", e));
         }
