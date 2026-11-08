@@ -118,7 +118,8 @@ io.on('connection', (socket) => {
                 eventRes = await pool.query("SELECT id FROM events LIMIT 1");
             }
             
-            const eventId = eventRes.rows[0].id; // 👈 SOLUCIONADO EL ÍNDICE CERO DE FORMA DEFINITIVA
+            // CORREGIDO DEFINITIVO: Acceso estricto al índice cero [0] del array para que el ID del evento no viaje vacío
+            const eventId = eventRes.rows[0].id;
 
             await pool.query(
                 `INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) 
