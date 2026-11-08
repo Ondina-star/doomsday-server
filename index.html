@@ -186,15 +186,10 @@
                 .then(data => {
                     if (!Array.isArray(data)) return;
                     
-                    // 1. Respaldamos todas las fechas de eventos creadas locales (como 2026-02-22)
-                    const backupEvents = Object.keys(eventsData);
+                    // UNIFICACIÓN MECÁNICA: Forzamos el volcado limpio de propiedades id y name puras
                     eventsData = {};
-                    
-                    // 2. Restauramos los casilleros base para que el selector no sufra bajas
-                    backupEvents.forEach(ev => { eventsData[ev] = []; });
-                    if (!eventsData[currentEvent]) eventsData[currentEvent] = [];
+                    eventsData[currentEvent] = [];
 
-                    // 3. Inyección y mapeo directo sin filtros lógicos cruzados
                     data.forEach(m => {
                         let evKey = m.event_date ? m.event_date.trim() : currentEvent;
                         if (!eventsData[evKey]) eventsData[evKey] = [];
@@ -209,18 +204,13 @@
                             day3: parseInt(m.day3) || 0
                         });
                     });
-                    
                     renderApp();
                 })
-                .catch(e => console.error("❌ Error en descarga:", e));
+                .catch(e => console.error("❌ Error de red:", e));
 
             fetch(`${SERVER_URL}/api/blacklist`)
                 .then(res => res.json())
-                .then(data => {
-                    blacklist = Array.isArray(data) ? data : [];
-                    renderApp();
-                })
-                .catch(e => console.error("❌ Error en lista negra:", e));
+                .then(data => { blacklist = Array.isArray(data) ? data : []; renderApp(); });
         }
         function checkAuth() {
             const u = document.getElementById("username").value;
