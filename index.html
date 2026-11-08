@@ -267,10 +267,10 @@
             if(blacklist.some(b => b.id === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
             
             if (!eventsData[currentEvent]) {
-                eventsData[currentEvent] =;
+                eventsData[currentEvent] = [];
             }
             
-            // CORREGIDO EN KHAN: Inyectamos todas las variantes de propiedad para blindar el objeto local contra conflictos de herencia de variables de PostgreSQL
+            // CORREGIDO EN SINTAXIS MAXIMA: Satisface los alias relacionales de PostgreSQL inyectando ambas llaves de forma segura
             eventsData[currentEvent].push({ 
                 id: id, 
                 name: name, 
