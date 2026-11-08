@@ -186,22 +186,22 @@
                 .then(data => {
                     if (!Array.isArray(data)) return;
                     
-                    // CORREGIDO EN KHAN: Preservamos los eventos creados locales para evitar que desaparezcan si están vacíos al recargar
+                    // 1. Respaldamos todas las fechas de eventos creadas locales (como 2026-02-22)
                     const backupEvents = Object.keys(eventsData);
                     eventsData = {};
                     
-                    // Restauramos las fechas base existentes para que el selector no se rompa
+                    // 2. Restauramos los casilleros base para que el selector no sufra bajas
                     backupEvents.forEach(ev => { eventsData[ev] = []; });
                     if (!eventsData[currentEvent]) eventsData[currentEvent] = [];
 
-                    // Agrupamos de forma inteligente cada miembro en su evento real sin destruir nada
+                    // 3. Inyección y mapeo directo sin filtros lógicos cruzados
                     data.forEach(m => {
                         let evKey = m.event_date ? m.event_date.trim() : currentEvent;
                         if (!eventsData[evKey]) eventsData[evKey] = [];
                         
                         eventsData[evKey].push({
-                            id: m.id || m.identity_no,
-                            name: m.name || m.commander_name,
+                            id: m.id,
+                            name: m.name,
                             status: m.status || "Pending",
                             chat: m.chat || "Out",
                             day1: parseInt(m.day1) || 0,
@@ -228,7 +228,7 @@
             if (u === AUTH_USER && p === AUTH_PASS) {
                 document.getElementById("login-screen").classList.add("hidden");
                 document.getElementById("main-panel").classList.remove("hidden");
-                initSocketConnection(); // 👈 La conexión llamará a la descarga y pintará la pantalla a su tiempo
+                initSocketConnection();
             } else {
                 document.getElementById("login-error").classList.remove("hidden");
             }
@@ -243,15 +243,22 @@
         function openModal(id) {
             if (id === 'clone-modal') {
                 const select = document.getElementById("clone-source-select");
-                select.innerHTML = "";
-                Object.keys(eventsData).forEach(ev => {
-                    if(ev !== currentEvent) select.innerHTML += `<option value="${ev}">${ev}</option>`;
-                });
-                if(select.innerHTML === "") { alert("No past timelines found."); return; }
+                if (select) {
+                    select.innerHTML = "";
+                    Object.keys(eventsData).forEach(ev => {
+                        if(ev !== currentEvent) select.innerHTML += `<option value="${ev}">${ev}</option>`;
+                    });
+                    if(select.innerHTML === "") { alert("No past timelines found."); return; }
+                }
             }
-            document.getElementById(id).classList.add("active");
+            const modalEl = document.getElementById(id);
+            if (modalEl) modalEl.classList.add("active");
         }
-        function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+
+        function closeModal(id) { 
+            const modalEl = document.getElementById(id);
+            if (modalEl) modalEl.classList.remove("active"); 
+        }
         function addNewMember() {
             const id = document.getElementById("new-member-id").value.trim();
             const name = document.getElementById("new-member-name").value.trim();
