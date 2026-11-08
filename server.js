@@ -19,7 +19,6 @@ const pool = new Pool({
 
 async function initDatabase() {
     try {
-        // CORREGIDO EN KHAN: Estructura limpia. Eliminamos la query INSERT redundante que congelaba el hilo asíncrono de arranque en Render
         await pool.query(`
             CREATE TABLE IF NOT EXISTS events (
                 id SERIAL PRIMARY KEY,
@@ -43,13 +42,21 @@ async function initDatabase() {
         `);
         
         console.log("🔥 Base de datos validada y lista para operar de forma permanente.");
+        
+        // CORREGIDO EN KHAN: Encendemos las antenas del servidor ÚNICA Y ESTRICTAMENTE cuando la base de datos ya está lista. Esto quita el atasco en Render al instante.
+        const PORT = process.env.PORT || 3000;
+        server.listen(PORT, '0.0.0.0', () => {
+            console.log(`☢️ Doomsday Servidor Online y Validado en Puerto: ${PORT}`);
+        });
+
     } catch (err) {
         console.error("❌ Error inicializando:", err.message);
     }
 }
 
-
+// Ejecución controlada del búnker
 initDatabase();
+
 
 app.get('/api/commanders', async (req, res) => {
     try {
@@ -126,13 +133,5 @@ io.on('connection', (socket) => {
     });
 });
 
-// ==========================================
-// 🚀 ARRANQUE DE RED ACORAZADO PARA RENDER
-// ==========================================
-const PORT = process.env.PORT || 3000;
 
-// Forzamos al servidor HTTP a escuchar en la IP global 0.0.0.0 requerida para que Render valide el estado a LIVE al instante
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`☢️ Doomsday Servidor Online y Validado en Puerto: ${PORT}`);
-});
 
