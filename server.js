@@ -22,10 +22,10 @@ const pool = new Pool({
 // ==========================================
 async function initDatabase() {
     try {
+        // 1. Crear tablas base si no existen
         await pool.query(`
             CREATE TABLE IF NOT EXISTS events (
                 id SERIAL PRIMARY KEY,
-                event_name VARCHAR(100) DEFAULT 'CLOCKWORK_SHUTDOWN',
                 event_date DATE NOT NULL,
                 created_at TIMESTAMP DEFAULT NOW()
             );
@@ -47,26 +47,23 @@ async function initDatabase() {
                 created_at TIMESTAMP DEFAULT NOW()
             );
         `);
+        
+        // 🛠️ AUTOMODIFICACIÓN TÁCTICA: Forzamos la creación de columnas si tu PostgreSQL viejo no las tiene
+        await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_name VARCHAR(100) DEFAULT 'CLOCKWORK_SHUTDOWN';`);
         await pool.query(`ALTER TABLE commanders ADD COLUMN IF NOT EXISTS chat VARCHAR(50) DEFAULT 'Out';`);
+        
         await pool.query(`UPDATE commanders SET status = 'Pending' WHERE status IS NULL;`);
         await pool.query(`UPDATE commanders SET chat = 'Out' WHERE chat IS NULL;`);
         await pool.query(`UPDATE commanders SET day1_packs = 0 WHERE day1_packs IS NULL;`);
         await pool.query(`UPDATE commanders SET day2_packs = 0 WHERE day2_packs IS NULL;`);
         await pool.query(`UPDATE commanders SET day3_packs = 0 WHERE day3_packs IS NULL;`);
-        console.log("✅ Tablas de contingencia validadas en la nube.");
+        console.log("✅ Tablas de contingencia y columnas reparadas en la nube.");
 
-        // Registramos el evento base de Noviembre para que coincida con tu panel web
+        // 2. Registramos el evento base de Noviembre para que coincida con tu panel web
         const eventCheckNov = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
         if (eventCheckNov.rows.length === 0) {
             await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
             console.log("📅 Evento base del 06 de Noviembre registrado con éxito.");
-        }
-
-        // Registramos el evento de Diciembre de respaldo
-        const eventCheckDec = await pool.query("SELECT id FROM events WHERE event_date = '2026-12-02' LIMIT 1");
-        if (eventCheckDec.rows.length === 0) {
-            await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-12-02')");
-            console.log("📅 Evento base del 02 de Diciembre registrado.");
         }
     } catch (err) {
         console.error("❌ Error inicializando la Base de Datos:", err.message);
@@ -112,14 +109,6 @@ io.on('connection', (socket) => {
             
             if (!commander_id) return;
 
-            if (field === 'status' && value === 'Confirmed') {
-                const countRes = await pool.query("SELECT COUNT(*) FROM commanders WHERE status = 'Confirmed'");
-                if (parseInt(countRes.rows.count) >= 180) {
-                    socket.emit('error_notification', { message: '⚠️ CAPACIDAD MÁXIMA BLOQUEADA: El chat ya alcanzó el límite estricto de 180 comandantes.' });
-                    return;
-                }
-            }
-
             let databaseField = field;
             if(field === 'day1') databaseField = 'day1_packs';
             if(field === 'day2') databaseField = 'day2_packs';
@@ -145,7 +134,6 @@ io.on('connection', (socket) => {
                 eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
             }
             
-            // CORREGIDO CON ÍNDICE DE MATRIZ DE FORMA INDESTRUCTIBLE
             const eventId = eventRes.rows[0].id;
             
             await pool.query(
