@@ -123,32 +123,34 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('add_new_commander_cloud', async (data) => {
+     socket.on('add_new_commander_cloud', async (data) => {
         try {
             const id = data.id || data.commander_id || data.identity_no;
             const { name } = data;
             
             if (!id || !name) return console.warn("⚠️ Registro abortado: Faltan campos críticos.");
 
-            // 1. Buscamos el último evento registrado en PostgreSQL
-            let eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
+            // 1. Buscamos el evento base del 06 de Noviembre en PostgreSQL de forma directa
+            let eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
             
-            // 2. Si no hay eventos, creamos el base de noviembre de contingencia inmediata
+            // 2. Si por algún motivo se borró de la base de datos cloud, usamos el primero que exista como respaldo
             if (eventRes.rows.length === 0) {
-                await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
-                eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
+                eventRes = await pool.query("SELECT id FROM events LIMIT 1");
             }
             
-            // CORREGIDO DEFINITIVO: Acceso real al índice cero del array de Node-Postgres
-            const eventId = eventRes.rows[0].id;
-            
-            // 3. Inserción blindada en PostgreSQL en la nube de Render
-            await pool.query(
-                'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
-                [eventId, id, name]
-            );
-            
-            io.emit('commander_synchronized');
+            if (eventRes.rows.length > 0) {
+                const eventId = eventRes.rows[0].id;
+                
+                // 3. Inserción blindada en PostgreSQL en la nube de Render
+                await pool.query(
+                    'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
+                    [eventId, id, name]
+                );
+                
+                io.emit('commander_synchronized');
+            } else {
+                console.warn("⚠️ Operación abortada: No hay ningún evento registrado en PostgreSQL.");
+            }
         } catch (e) {
             console.error("❌ Error crítico insertando comandante en la nube:", e);
         }
