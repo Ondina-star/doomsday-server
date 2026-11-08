@@ -184,22 +184,19 @@
             fetch(`${SERVER_URL}/api/commanders`)
                 .then(res => res.json())
                 .then(data => {
-                    const listaLimpia = Array.isArray(data) ? data : [];
+                    if (!Array.isArray(data)) return;
                     
-                    // ☢️ CORRECCIÓN INDESTRUCTIBLE: Sincroniza los datos directamente en el casillero actual sin borrar el objeto base
-                    eventsData[currentEvent] = [];
-
-                    listaLimpia.forEach(m => {
-                        eventsData[currentEvent].push({
-                            id: m.id || m.identity_no,
-                            name: m.name || m.commander_name,
-                            status: m.status || "Pending",
-                            chat: m.chat || "Out",
-                            day1: m.day1 !== undefined ? m.day1 : (m.day1_packs !== undefined ? m.day1_packs : 0),
-                            day2: m.day2 !== undefined ? m.day2 : (m.day2_packs !== undefined ? m.day2_packs : 0),
-                            day3: m.day3 !== undefined ? m.day3 : (m.day3_packs !== undefined ? m.day3_packs : 0)
-                        });
-                    });
+                    // CORREGIDO: Mapeamos los datos en una variable temporal y SOLO sobreescribimos cuando la descarga sea 100% exitosa
+                    eventsData[currentEvent] = data.map(m => ({
+                        id: m.id || m.identity_no,
+                        name: m.name || m.commander_name,
+                        status: m.status || "Pending",
+                        chat: m.chat || "Out",
+                        day1: m.day1 !== undefined ? m.day1 : (m.day1_packs !== undefined ? m.day1_packs : 0),
+                        day2: m.day2 !== undefined ? m.day2 : (m.day2_packs !== undefined ? m.day2_packs : 0),
+                        day3: m.day3 !== undefined ? m.day3 : (m.day3_packs !== undefined ? m.day3_packs : 0)
+                    }));
+                    
                     renderApp();
                 })
                 .catch(e => console.error("❌ Error en descarga:", e));
