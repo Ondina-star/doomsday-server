@@ -113,7 +113,15 @@ app.get('/api/blacklist', async (req, res) => {
 // Canales de comunicación Multioperador en tiempo real
 io.on('connection', (socket) => {
     console.log('🔗 Oficial de comunicaciones conectado:', socket.id);
-
+    socket.on('add_new_event_cloud', async (data) => {
+        try {
+            const { date } = data;
+            await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', $1) ON CONFLICT DO NOTHING", [date]);
+            io.emit('event_synchronized');
+        } catch (e) {
+            console.error("❌ Error guardando evento en la nube:", e);
+        }
+    });
     socket.on('update_commander_data', async (data) => {
         try {
             const { commander_id, field, value } = data;
