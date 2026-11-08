@@ -323,14 +323,9 @@
             closeModal("clone-modal");
             renderApp();
         }
-        function toggleStatus(index) {
+        function toggleStatus(idKey) {
             let list = eventsData[currentEvent] || [];
-            let member = list[index];
-            if (!member) return;
-            
-            // CORREGIDO: Buscamos al miembro por su ID único real de texto en lugar de su fila física
-            let targetId = member.id || member.identity_no;
-            let realMember = list.find(m => (m.id || m.identity_no) === targetId);
+            let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
             if (!realMember) return;
             
             let nextStatus = "Pending";
@@ -340,48 +335,36 @@
             else nextStatus = "Pending";
             
             realMember.status = nextStatus;
-            
             if (socket && socket.connected) {
-                socket.emit("update_commander_data", { commander_id: targetId, field: "status", value: nextStatus });
-            }
-            renderApp();
-        }
-        function toggleChat(index) {
-            let list = eventsData[currentEvent] || [];
-            let member = list[index];
-            if (!member) return;
-            
-            let targetId = member.id || member.identity_no;
-            let realMember = list.find(m => (m.id || m.identity_no) === targetId);
-            if (!realMember) return;
-            
-            realMember.chat = realMember.chat === "In Chat" ? "Out" : "In Chat";
-            
-            if (socket && socket.connected) {
-                socket.emit('update_commander_data', { commander_id: targetId, field: 'chat', value: realMember.chat });
+                socket.emit("update_commander_data", { commander_id: idKey, field: "status", value: nextStatus });
             }
             renderApp();
         }
 
-        function updateDice(index, day, change) {
+        function toggleChat(idKey) {
             let list = eventsData[currentEvent] || [];
-            let member = list[index];
-            if (!member) return;
-            
-            let targetId = member.id || member.identity_no;
-            let realMember = list.find(m => (m.id || m.identity_no) === targetId);
+            let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
+            if (!realMember) return;
+            realMember.chat = realMember.chat === "In Chat" ? "Out" : "In Chat";
+            if (socket && socket.connected) {
+                socket.emit('update_commander_data', { commander_id: idKey, field: 'chat', value: realMember.chat });
+            }
+            renderApp();
+        }
+
+        function updateDice(idKey, day, change) {
+            let list = eventsData[currentEvent] || [];
+            let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
             if (!realMember) return;
             
             let fieldName = day === 1 ? "day1" : (day === 2 ? "day2" : "day3");
-            
             if (day === 1) realMember.day1 = Math.max(0, (realMember.day1 || 0) + change);
             if (day === 2) realMember.day2 = Math.max(0, (realMember.day2 || 0) + change);
             if (day === 3) realMember.day3 = Math.max(0, (realMember.day3 || 0) + change);
             
             let targetValue = day === 1 ? realMember.day1 : (day === 2 ? realMember.day2 : realMember.day3);
-            
             if (socket && socket.connected) {
-                socket.emit('update_commander_data', { commander_id: targetId, field: fieldName, value: targetValue });
+                socket.emit('update_commander_data', { commander_id: idKey, field: fieldName, value: targetValue });
             }
             renderApp();
         }
