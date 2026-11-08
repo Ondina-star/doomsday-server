@@ -148,9 +148,9 @@ io.on('connection', (socket) => {
                 eventRes = await pool.query("SELECT id FROM events ORDER BY id DESC LIMIT 1");
             }
             
-            // CORREGIDO: Sintaxis de arreglo perfecta para Node-Postgres
-            const eventId = eventRes.rows[0].id;
-            
+                        // CORREGIDO DEFINITIVO E INDESTRUCTIBLE: Acceso real al índice del array de Node-Postgres
+            const eventId = eventRes.rows[0] ? eventRes.rows[0].id : null;
+
             await pool.query(
                 'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                 [eventId, id, name]
