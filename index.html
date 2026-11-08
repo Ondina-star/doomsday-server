@@ -184,7 +184,8 @@
             fetch(`${SERVER_URL}/api/commanders`)
                 .then(res => res.json())
                 .then(data => {
-                    eventsData[currentEvent] = data;
+                    // SANEAMIENTO: Nos aseguramos de que los datos sean un arreglo limpio y los inyectamos en el evento actual
+                    eventsData[currentEvent] = Array.isArray(data) ? data : [];
                     renderApp();
                 })
                 .catch(e => console.error("❌ Error cargando comandantes:", e));
@@ -192,7 +193,7 @@
             fetch(`${SERVER_URL}/api/blacklist`)
                 .then(res => res.json())
                 .then(data => {
-                    blacklist = data;
+                    blacklist = Array.isArray(data) ? data : [];
                     renderApp();
                 })
                 .catch(e => console.error("❌ Error cargando lista negra:", e));
