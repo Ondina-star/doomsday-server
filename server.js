@@ -65,7 +65,7 @@ initDatabase();
 // Rutas de inicio rápido para sincronizar los navegadores
 app.get('/api/commanders', async (req, res) => {
     try {
-        const result = await pool.query('SELECT identity_no AS id, commander_name AS name, day1, day2, day3, status, chat FROM commanders ORDER BY identity_no ASC');
+        const result = await pool.query('SELECT identity_no AS id, commander_name AS name, day1_packs AS day1, day2_packs AS day2, day3_packs AS day3, status, chat FROM commanders ORDER BY identity_no ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
