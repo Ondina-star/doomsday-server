@@ -273,11 +273,20 @@
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
             if(!date || eventsData[date]) return;
+            
             eventsData[date] = [];
             const selector = document.getElementById("event-selector");
-            selector.innerHTML += `<option value="${date}">DEPLOYMENT: ${date}</option>`;
-            selector.value = date;
+            if(selector) {
+                selector.innerHTML += `<option value="${date}">DEPLOYMENT: ${date}</option>`;
+                selector.value = date;
+            }
             currentEvent = date;
+
+            // AGREGADO CRÍTICO: Emitimos la nueva fecha a PostgreSQL de Render para que no se borre al actualizar
+            if(socket && socket.connected) {
+                socket.emit('add_new_event_cloud', { date: date });
+            }
+
             closeModal("event-modal");
             renderApp();
         }
