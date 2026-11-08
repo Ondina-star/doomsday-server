@@ -267,17 +267,25 @@
             if(blacklist.some(b => b.id === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
             
             if (!eventsData[currentEvent]) {
-                eventsData[currentEvent] = [];
+                eventsData[currentEvent] =;
             }
             
-            // 1. Inserción local inmediata en la interfaz
-            eventsData[currentEvent].push({ id: id, name: name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" });
+            // CORREGIDO EN KHAN: Inyectamos todas las variantes de propiedad para blindar el objeto local contra conflictos de herencia de variables de PostgreSQL
+            eventsData[currentEvent].push({ 
+                id: id, 
+                name: name, 
+                identity_no: id, 
+                commander_name: name, 
+                day1: 0, 
+                day2: 0, 
+                day3: 0, 
+                status: "Pending", 
+                chat: "Out" 
+            });
             
-            // 2. EMISIÓN CLOUD BLINDADA: Enviamos la señal por Socket si está listo
             if(socket && socket.connected) {
                 socket.emit('add_new_commander_cloud', { id: id, name: name });
             } else {
-                // CONTINGENCIA DUAL: Si el Socket aún está negociando el enlace, forzamos el guardado directo por API HTTP
                 fetch(`${SERVER_URL}/api/commanders`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
