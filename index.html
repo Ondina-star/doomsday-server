@@ -165,6 +165,7 @@
                 socket.on('connect', () => {
                     document.getElementById("network-status").innerText = "CONNECTED IN REAL-TIME";
                     document.getElementById("network-status").className = "text-green-400 font-bold";
+                    fetchDataFromServer();
                 });
                 socket.on('disconnect', () => {
                     document.getElementById("network-status").innerText = "OFFLINE - RECONNECTING...";
