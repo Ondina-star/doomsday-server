@@ -242,7 +242,7 @@
             } else if (member.status === "Confirmed") {
                 member.status = "Canceled";
             } else if (member.status === "Canceled") {
-                nextStatus = "Waitlist";
+                member.status = "Waitlist";
             } else {
                 member.status = "Pending";
             }
