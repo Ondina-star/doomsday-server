@@ -358,8 +358,7 @@
             const body = document.getElementById("member-table-body");
             if(!body) return;
             body.innerHTML = "";
-            let list = eventsData[currentEvent] ||;
-            
+            let list = eventsData[currentEvent] || [];
             let searchEl = document.getElementById("search-input");
             let searchQuery = searchEl ? searchEl.value.toLowerCase().trim() : "";
             
