@@ -16,7 +16,12 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
-
+// ==========================================
+// 🛡️ RUTA HEALTH CHECK INDISPENSABLE PARA RENDER
+// ==========================================
+app.get('/', (req, res) => {
+    res.status(200).send("OK");
+});
 async function initDatabase() {
     try {
         await pool.query(`
