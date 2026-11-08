@@ -71,11 +71,11 @@ initDatabase();
 // Rutas de inicio rápido para sincronizar los navegadores
 app.get('/api/commanders', async (req, res) => {
     try {
-        // CORREGIDO CON JOIN: Extraemos la fecha real (event_date) mapeando las tablas para que el panel web sepa en qué cajón pintar cada miembro
+        // CORREGIDO CON TO_CHAR: Convertimos la fecha a texto plano limpio YYYY-MM-DD en la base de datos para bloquear los fallos por zonas horarias en el móvil
         const queryText = `
             SELECT c.identity_no AS id, c.commander_name AS name, 
                    c.day1_packs AS day1, c.day2_packs AS day2, c.day3_packs AS day3, 
-                   c.status, c.chat, e.event_date
+                   c.status, c.chat, TO_CHAR(e.event_date, 'YYYY-MM-DD') AS event_date
             FROM commanders c
             INNER JOIN events e ON c.event_id = e.id
             ORDER BY c.identity_no ASC
