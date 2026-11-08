@@ -49,6 +49,11 @@ async function initDatabase() {
             );
         `);
         await pool.query(`ALTER TABLE commanders ADD COLUMN IF NOT EXISTS chat VARCHAR(50) DEFAULT 'Out';`);
+        await pool.query(`UPDATE commanders SET status = 'Pending' WHERE status IS NULL;`);
+        await pool.query(`UPDATE commanders SET chat = 'Out' WHERE chat IS NULL;`);
+        await pool.query(`UPDATE commanders SET day1_packs = 0 WHERE day1_packs IS NULL;`);
+        await pool.query(`UPDATE commanders SET day2_packs = 0 WHERE day2_packs IS NULL;`);
+        await pool.query(`UPDATE commanders SET day3_packs = 0 WHERE day3_packs IS NULL;`);
         console.log("✅ Tablas de contingencia validadas en la nube.");
 
         // 2. Insertar automáticamente el primer evento del 2 de diciembre si está vacío
