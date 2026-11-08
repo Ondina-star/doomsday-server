@@ -71,10 +71,16 @@ app.get('/api/blacklist', async (req, res) => {
 io.on('connection', (socket) => {
     console.log('🔗 Conectado:', socket.id);
 
-    socket.on('add_new_commander_cloud', async (data) => {
+        socket.on('add_new_commander_cloud', async (data) => {
         try {
-            const { id, name, event_date } = data;
-            if (!id || !name || !event_date) return;
+            const id = data.id || data.commander_id || data.identity_no;
+            const { name } = data;
+            
+            // CORREGIDO: Si el móvil no envía la fecha, el servidor le inyecta automáticamente la de noviembre para evitar el bloqueo del NOT NULL de PostgreSQL
+            const event_date = data.event_date || '2026-11-06';
+            
+            if (!id || !name) return console.warn("⚠️ Campos id o name ausentes en add_new_commander_cloud.");
+
             await pool.query(
                 `INSERT INTO commanders (id, name, event_date, status, chat, day1, day2, day3) 
                  VALUES ($1, $2, $3, 'Pending', 'Out', 0, 0, 0) 
@@ -82,8 +88,11 @@ io.on('connection', (socket) => {
                 [id, name, event_date]
             );
             io.emit('commander_synchronized');
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("❌ Error crítico en add_new_commander_cloud:", e); 
+        }
     });
+
     socket.on('update_commander_data', async (data) => {
         try {
             // CORREGIDO EN CONTROL: Forzamos la limpieza absoluta de espacios invisibles en el ID
