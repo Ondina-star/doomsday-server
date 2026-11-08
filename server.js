@@ -118,26 +118,28 @@ io.on('connection', (socket) => {
             console.error("❌ Error en update_commander_data:", e);
         }
     });
-
     socket.on('add_new_commander_cloud', async (data) => {
         try {
             const { id, name } = data;
             
-            // 1. Extraemos el evento activo de la tabla de forma correcta con el índice [0]
-            const eventRes = await pool.query('SELECT id FROM events LIMIT 1');
-            if(eventRes.rows.length > 0) {
-                const eventId = eventRes.rows[0].id; // 👈 CORREGIDO: Acceso seguro al primer registro
-                
-                // 2. Inserción blindada con los parámetros iniciales estables (0, 'Pending', 'Out')
-                await pool.query(
-                    'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
-                    [eventId, id, name]
-                );
-                
-                io.emit('commander_synchronized');
-            } else {
-                console.warn("⚠️ No se encontró ningún evento base en la tabla de Render.");
+            // 1. Buscamos dinámicamente si ya existe el evento del 2026-11-06 en PostgreSQL
+            let eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
+            
+            // 2. Si no existe ese evento de noviembre en tu base de datos cloud, lo creamos al vuelo
+            if (eventRes.rows.length === 0) {
+                await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
+                eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
             }
+            
+            const eventId = eventRes.rows[0].id;
+            
+            // 3. Inserción blindada asignando el ID correcto del evento correspondiente
+            await pool.query(
+                'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
+                [eventId, id, name]
+            );
+            
+            io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error crítico insertando comandante en la nube:", e);
         }
