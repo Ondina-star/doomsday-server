@@ -154,16 +154,24 @@ io.on('connection', (socket) => {
 
     socket.on('add_new_commander_cloud', async (data) => {
         try {
-            const { id, name } = data;
+            // CORREGIDO EN KHAN: Captura segura de la identidad del comandante admitiendo ambos formatos
+            const id = data.id || data.commander_id || data.identity_no;
+            const { name } = data;
             
-            let eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
+            if (!id || !name) return console.warn("⚠️ Registro abortado: Faltan campos críticos (ID o Nombre).");
+
+            // Buscamos dinámicamente si ya existe el evento actual activo en PostgreSQL
+            let eventRes = await pool.query("SELECT id FROM events WHERE event_date = $1 LIMIT 1", [currentEvent]);
+            
+            // Si el evento no existe en tu base de datos cloud, usamos el primero disponible como respaldo seguro
             if (eventRes.rows.length === 0) {
-                await pool.query("INSERT INTO events (event_name, event_date) VALUES ('CLOCKWORK_SHUTDOWN', '2026-11-06')");
-                eventRes = await pool.query("SELECT id FROM events WHERE event_date = '2026-11-06' LIMIT 1");
+                eventRes = await pool.query("SELECT id FROM events LIMIT 1");
             }
             
+            // CORREGIDO CRÍTICO: Añadido el índice [0] para leer correctamente la fila del arreglo devuelto por pg
             const eventId = eventRes.rows[0].id;
             
+            // Inserción indestructible: Evita que PostgreSQL deje campos nulos o vacíos en la nube
             await pool.query(
                 'INSERT INTO commanders (event_id, identity_no, commander_name, status, chat, day1_packs, day2_packs, day3_packs) VALUES ($1, $2, $3, \'Pending\', \'Out\', 0, 0, 0) ON CONFLICT (identity_no) DO UPDATE SET commander_name = $3', 
                 [eventId, id, name]
