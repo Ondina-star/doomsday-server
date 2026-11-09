@@ -54,11 +54,12 @@
                     <span class="inline-block w-2 h-2 rounded-full bg-blue-500 animate-ping"></span> 
                     CLOUD NETWORK STATUS: <span id="network-status">INITIALIZING PROXY...</span>
                     
-                    <!-- BOTÓN DE RESPALDO MANUAL DISCORD ADOSADO -->
-                    <button onclick="forzarRespaldoManual()" style="background: #5865F2; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; cursor: pointer; margin-left: 8px; transition: 0.2s;">
+                    <!-- DISPARADOR INTEGRADO NATIVO: Ejecuta la señal a Render al instante eliminando intermediarios -->
+                    <button onclick="if(window.socket && window.socket.connected){this.innerText='⏳ Enviando...';this.style.background='#e67e22';window.socket.emit('forzar_respaldo_manual',{user:window.AUTH_USER},(res)=>{if(res && res.success){this.innerText='✅ ¡Enviado!';this.style.background='#2ecc71';}else{this.innerText='❌ Falló';this.style.background='#e74c3c';}setTimeout(()=>{this.innerText='🚀 Respaldar en Discord';this.style.background='#5865F2';},3000);});}else{alert('⚠️ Servidor en la nube desconectado');}" style="background: #5865F2; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; cursor: pointer; margin-left: 8px; transition: 0.2s;">
                         🚀 Respaldar en Discord
                     </button>
                 </div>
+
             </div>
             <div class="flex flex-wrap justify-center gap-2 md:gap-3 w-full xl:w-auto">
                 <button onclick="openModal('add-member-modal')" class="bg-slate-900 border border-green-600/40 hover:bg-green-950/30 text-green-400 text-[11px] md:text-xs font-bold px-3 py-2 rounded tracking-wide font-mono transition">➕ ADD MEMBER</button>
