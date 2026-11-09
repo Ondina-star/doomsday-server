@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
+const cron = require('node-cron'); // Inyectado para los respaldos por tiempo
 
 const app = express();
 const server = http.createServer(app);
@@ -16,12 +17,59 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
+
 // ==========================================
 // 🛡️ RUTA HEALTH CHECK INDISPENSABLE PARA RENDER
 // ==========================================
 app.get('/', (req, res) => {
     res.status(200).send("OK");
 });
+
+// URL de la antena del Webhook de Discord de tu alianza
+const DISCORD_WEBHOOK_URL = "https://discord.com";
+
+// Función maestra indestructible encargada de empaquetar los datos y despacharlos a Discord
+async function enviarRespaldoADiscord(motivo = "Automático") {
+    try {
+        const queryText = "SELECT id, name, status, chat, day1, day2, day3 FROM commanders ORDER BY id ASC";
+        const result = await pool.query(queryText);
+        
+        const fechaHoy = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
+        const contenidoArchivo = `💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n📌 Tipo de copia: ${motivo}\n📅 Fecha y Hora (Madrid): ${fechaHoy}\n========================================\n\n` + 
+            JSON.stringify(result.rows, null, 4);
+
+        const fileBuffer = Buffer.from(contenidoArchivo, 'utf-8');
+        const formData = new FormData();
+        
+        formData.append("payload_json", JSON.stringify({
+            content: `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n📂 _El registro de comandantes viene adjunto en el archivo inferior._`
+        }));
+        
+        formData.append("files", new Blob([fileBuffer]), "backup-doomsday.txt");
+
+        const response = await fetch(DISCORD_WEBHOOK_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        console.log(`✅ Respaldo enviado con éxito a Discord. Motivo: ${motivo}`);
+        return { success: true };
+    } catch (err) {
+        console.error("❌ Error enviando el respaldo a Discord:", err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+// ⏰ CONFIGURACIÓN CRON: Envío automático a las 12:00 del mediodía y a las 00:00 de la noche todos los días (Hora Madrid)
+cron.schedule('0 0,12 * * *', () => {
+    console.log("⏰ Ejecutando cron automático de respaldo diario hacia Discord...");
+    enviarRespaldoADiscord("Automático Programado");
+}, {
+    scheduled: true,
+    timezone: "Europe/Madrid"
+});
+
 // ==========================================
 // 🚀 ARRANQUE INMEDIATO DE RED (PASO A LIVE)
 // ==========================================
