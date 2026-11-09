@@ -155,6 +155,12 @@ app.get('/api/blacklist', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+// LA RUTA INYECTADA AQUÍ EN MEDIO:
+app.post('/api/forzar-respaldo-manual', async (req, res) => {
+    console.log("⚡ Señal de respaldo manual recibida por vía HTTP ordinaria.");
+    const resultado = await enviarRespaldoADiscord(`Manual HTTP - Operador: ${req.body.user || 'Héctor'}`);
+    res.json(resultado);
+});
 
 io.on('connection', (socket) => {
     console.log('🔗 Conectado:', socket.id);
