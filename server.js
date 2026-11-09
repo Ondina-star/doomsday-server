@@ -28,28 +28,30 @@ app.get('/', (req, res) => {
 // URL de la antena del Webhook de Discord de tu alianza
 const DISCORD_WEBHOOK_URL = "https://discord.com";
 
-// Función maestra indestructible encargada de empaquetar los datos y despacharlos a Discord
+// Función maestra indestructible y compatible. Pasa el Health Check y compila sin FormData
 async function enviarRespaldoADiscord(motivo = "Automático") {
     try {
         const queryText = "SELECT id, name, status, chat, day1, day2, day3 FROM commanders ORDER BY id ASC";
         const result = await pool.query(queryText);
         
         const fechaHoy = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
-        const contenidoArchivo = `💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n📌 Tipo de copia: ${motivo}\n📅 Fecha y Hora (Madrid): ${fechaHoy}\n========================================\n\n` + 
-            JSON.stringify(result.rows, null, 4);
+        
+        // Formateamos los datos directamente en texto plano legible para el chat de Discord
+        let listaComandantes = result.rows.map(m => 
+            `🔹 ID: ${m.id} | ${m.name} | Estado: ${m.status} | Chat: ${m.chat} | Dados: [${m.day1}, ${m.day2}, ${m.day3}]`
+        ).join('\n');
 
-        const fileBuffer = Buffer.from(contenidoArchivo, 'utf-8');
-        const formData = new FormData();
-        
-        formData.append("payload_json", JSON.stringify({
-            content: `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n📂 _El registro de comandantes viene adjunto en el archivo inferior._`
-        }));
-        
-        formData.append("files", new Blob([fileBuffer]), "backup-doomsday.txt");
+        if (result.rows.length === 0) listaComandantes = "No hay comandantes registrados actualmente.";
+
+        // Construimos el cuerpo JSON puro compatible con el Webhook de Discord
+        const payload = {
+            content: `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n\n\`\`\`text\n💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n========================================\n${listaComandantes}\n\`\`\``
+        };
 
         const response = await fetch(DISCORD_WEBHOOK_URL, {
             method: 'POST',
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
