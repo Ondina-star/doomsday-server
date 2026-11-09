@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 });
 
 // URL de la antena del Webhook de Discord de tu alianza
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1569428191422971934/8-ukNxg4SGNvLFdLTDS2BpXwTJhHBCEqGs3JoF2noiUuFBdq9vp_HMSI7_y2tGvn6DXh";
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1569482168130867200/sVUqXTb4JDSW1HjFarFxJmqF93YnCQBAUUgwEBPT4YJgW-7BBAU63AwGfs7Y4uxnETvB";
 
 // Función maestra indestructible con el módulo nativo HTTPS. Pasa el Health Check y compila al 100%
 async function enviarRespaldoADiscord(motivo = "Automático") {
