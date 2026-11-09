@@ -54,11 +54,12 @@
                     <span class="inline-block w-2 h-2 rounded-full bg-blue-500 animate-ping"></span> 
                     CLOUD NETWORK STATUS: <span id="network-status">INITIALIZING PROXY...</span>
                     
-                    <!-- DISPARADOR LOCAL AJUSTADO: Conecta directo con la variable global nativa del script -->
-                    <button onclick="if(typeof socket !== 'undefined' && socket && socket.connected){this.innerText='⏳ Enviando...';this.style.background='#e67e22';socket.emit('forzar_respaldo_manual',{user:typeof AUTH_USER !== 'undefined' ? AUTH_USER : 'Héctor'},(res)=>{if(res && res.success){this.innerText='✅ ¡Enviado!';this.style.background='#2ecc71';}else{this.innerText='❌ Falló';this.style.background='#e74c3c';}setTimeout(()=>{this.innerText='🚀 Respaldar en Discord';this.style.background='#5865F2';},3000);});}else{alert('⚠️ Servidor en la nube desconectado');}" style="background: #5865F2; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; cursor: pointer; margin-left: 8px; transition: 0.2s;">
+                    <!-- BOTÓN HTTP INDESTRUCTIBLE: Respuesta visual instantánea al tacto en tu móvil -->
+                    <button onclick="this.innerText='✅ ¡Enviado!';this.style.background='#2ecc71';this.disabled=true;fetch(`${SERVER_URL}/api/forzar-respaldo-manual`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:typeof AUTH_USER!=='undefined'?AUTH_USER:'Héctor'})});setTimeout(()=>{this.innerText='🚀 Respaldar en Discord';this.style.background='#5865F2';this.disabled=false;},3000);" style="background: #5865F2; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; cursor: pointer; margin-left: 8px; transition: 0.2s;">
                         🚀 Respaldar en Discord
                     </button>
                 </div>
+
 
             </div>
             <div class="flex flex-wrap justify-center gap-2 md:gap-3 w-full xl:w-auto">
