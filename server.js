@@ -137,8 +137,15 @@ app.get('/api/blacklist', async (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('🔗 Conectado:', socket.id);
-
-            socket.on('add_new_commander_cloud', async (data) => {
+    // ESCUCHADOR MANUAL INYECTADO: Recibe la señal del botón del móvil y ejecuta la exportación inmediata hacia Discord
+    socket.on('forzar_respaldo_manual', async (data, callback) => {
+        console.log("⚡ Señal de respaldo manual recibida desde el panel de Héctor.");
+        const resultado = await enviarRespaldoADiscord(`Manual - Operador: ${data.user || 'Héctor'}`);
+        if (typeof callback === 'function') {
+            callback(resultado);
+        }
+    });
+    socket.on('add_new_commander_cloud', async (data) => {
         try {
             const id = String(data.id || data.commander_id || data.identity_no).trim();
             const { name } = data;
