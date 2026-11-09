@@ -161,10 +161,17 @@ app.get('/api/blacklist', async (req, res) => {
 });
 // LA RUTA INYECTADA AQUÍ EN MEDIO:
 app.post('/api/forzar-respaldo-manual', (req, res) => {
-    console.log("⚡ Señal recibida por HTTP. Liberando botón del operador Héctor.");
-    res.json({ success: true }); // Envía el visto bueno inmediato al móvil para que no se quede colgado
-    enviarRespaldoADiscord(`Manual HTTP - Operador: ${req.body.user || 'Héctor'}`); // Despacha el archivo adjunto en segundo plano
+    console.log("⚡ Señal recibida por HTTP. Forzando liberación visual inmediata de la pantalla.");
+    
+    // Rompemos el atasco visual respondiendo al teléfono en el acto antes de procesar internet
+    res.status(200).json({ success: true });
+    
+    // Despachamos la consulta a la base de datos de forma paralela en segundo plano sin colgar el botón
+    setTimeout(() => {
+        enviarRespaldoADiscord(`Manual HTTP - Operador: ${req.body.user || 'Héctor'}`);
+    }, 10);
 });
+
 
 
 io.on('connection', (socket) => {
