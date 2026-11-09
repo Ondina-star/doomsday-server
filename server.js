@@ -94,14 +94,7 @@ async function enviarRespaldoADiscord(motivo = "Automático") {
         }
     });
 }
-// ⏰ CONFIGURACIÓN CRON: Envío automático a las 12:00 del mediodía y a las 00:00 de la noche todos los días (Hora Madrid)
-cron.schedule('0 0,12 * * *', () => {
-    console.log("⏰ Ejecutando cron automático de respaldo diario hacia Discord...");
-    enviarRespaldoADiscord("Automático Programado");
-}, {
-    scheduled: true,
-    timezone: "Europe/Madrid"
-});
+
 
 // ==========================================
 // 🚀 ARRANQUE INMEDIATO DE RED (PASO A LIVE)
