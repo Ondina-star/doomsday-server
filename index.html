@@ -182,7 +182,43 @@
                 console.log("🔄 Sincronización en la nube completada.");
             });
         }
+                function forzarRespaldoManual() {
+            const btn = document.querySelector("button[onclick='forzarRespaldoManual()']");
+            if (btn) {
+                btn.innerText = "⏳ Enviando...";
+                btn.style.background = "#e67e22";
+                btn.disabled = true;
+            }
 
+            // Emitimos la señal al servidor usando el canal de sockets activo
+            if (socket && socket.connected) {
+                socket.emit('forzar_respaldo_manual', { user: AUTH_USER }, (res) => {
+                    if (btn) {
+                        btn.disabled = false;
+                        if (res && res.success) {
+                            btn.innerText = "✅ ¡Enviado!";
+                            btn.style.background = "#2ecc71";
+                        } else {
+                            btn.innerText = "❌ Falló";
+                            btn.style.background = "#e74c3c";
+                        }
+                        
+                        // Restauramos el botón a su estado original tras 3 segundos
+                        setTimeout(() => {
+                            btn.innerText = "🚀 Respaldar en Discord";
+                            btn.style.background = "#5865F2";
+                        }, 3000);
+                    }
+                });
+            } else {
+                alert("⚠️ Error: No hay comunicación activa con el servidor cloud.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "🚀 Respaldar en Discord";
+                    btn.style.background = "#5865F2";
+                }
+            }
+                }
         function fetchDataFromServer() {
             fetch(`${SERVER_URL}/api/commanders`)
                 .then(res => res.json())
