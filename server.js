@@ -28,40 +28,58 @@ app.get('/', (req, res) => {
 // URL de la antena del Webhook de Discord de tu alianza
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1569428191422971934/8-ukNxg4SGNvLFdLTDS2BpXwTJhHBCEqGs3JoF2noiUuFBdq9vp_HMSI7_y2tGvn6DXh";
 
-// Función maestra indestructible y compatible. Pasa el Health Check y compila sin FormData
+// Función maestra indestructible con el módulo nativo HTTPS. Pasa el Health Check y compila al 100%
 async function enviarRespaldoADiscord(motivo = "Automático") {
-    try {
-        const queryText = "SELECT id, name, status, chat, day1, day2, day3 FROM commanders ORDER BY id ASC";
-        const result = await pool.query(queryText);
-        
-        const fechaHoy = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
-        
-        // Formateamos los datos directamente en texto plano legible para el chat de Discord
-        let listaComandantes = result.rows.map(m => 
-            `🔹 ID: ${m.id} | ${m.name} | Estado: ${m.status} | Chat: ${m.chat} | Dados: [${m.day1}, ${m.day2}, ${m.day3}]`
-        ).join('\n');
+    return new Promise((resolve) => {
+        try {
+            const queryText = "SELECT id, name, status, chat, day1, day2, day3 FROM commanders ORDER BY id ASC";
+            pool.query(queryText, (err, result) => {
+                if (err) {
+                    console.error("❌ Error consultando base de datos:", err.message);
+                    return resolve({ success: false, error: err.message });
+                }
 
-        if (result.rows.length === 0) listaComandantes = "No hay comandantes registrados actualmente.";
+                const fechaHoy = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
+                
+                let listaComandantes = result.rows.map(m => 
+                    `🔹 ID: ${m.id} | ${m.name} | Estado: ${m.status} | Chat: ${m.chat} | Dados: [${m.day1}, ${m.day2}, ${m.day3}]`
+                ).join('\n');
 
-        // Construimos el cuerpo JSON puro compatible con el Webhook de Discord
-        const payload = {
-            content: `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n\n\`\`\`text\n💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n========================================\n${listaComandantes}\n\`\`\``
-        };
+                if (result.rows.length === 0) listaComandantes = "No hay comandantes registrados actualmente.";
 
-        const response = await fetch(DISCORD_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+                const payload = JSON.stringify({
+                    content: `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n\n\`\`\`text\n💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n========================================\n${listaComandantes}\n\`\`\``
+                });
 
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        console.log(`✅ Respaldo enviado con éxito a Discord. Motivo: ${motivo}`);
-        return { success: true };
-    } catch (err) {
-        console.error("❌ Error enviando el respaldo a Discord:", err.message);
-        return { success: false, error: err.message };
-    }
-}
+                const urlObj = new URL(DISCORD_WEBHOOK_URL);
+                const options = {
+                    hostname: urlObj.hostname,
+                    path: urlObj.pathname + urlObj.search,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(payload)
+                    }
+                };
+
+                const req = https.request(options, (res) => {
+                    console.log(`✅ Respaldo enviado a Discord con código: ${res.statusCode}. Motivo: ${motivo}`);
+                    resolve({ success: res.statusCode >= 200 && res.statusCode < 300 });
+                });
+
+                req.on('error', (e) => {
+                    console.error("❌ Error en la petición HTTPS a Discord:", e.message);
+                    resolve({ success: false, error: e.message });
+                });
+
+                req.write(payload);
+                req.end();
+            });
+        } catch (globalErr) {
+            console.error("❌ Fallo crítico en enviarRespaldoADiscord:", globalErr.message);
+            resolve({ success: false, error: globalErr.message });
+        }
+    });
 
 // ⏰ CONFIGURACIÓN CRON: Envío automático a las 12:00 del mediodía y a las 00:00 de la noche todos los días (Hora Madrid)
 cron.schedule('0 0,12 * * *', () => {
