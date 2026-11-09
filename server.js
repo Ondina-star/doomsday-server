@@ -41,23 +41,17 @@ async function enviarRespaldoADiscord(motivo = "Automático") {
 
                 const fechaHoy = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
                 
-                // Formateamos los 180+ comandantes de forma legible dentro del archivo descargable
+                // Formateamos las filas de forma ultra compacta para maximizar el rendimiento
                 let listaComandantes = result.rows.map(m => 
-                    `[ID: ${m.id}] - ${m.name}\n🔹 Estado: ${m.status} | Chat: ${m.chat}\n🎲 Dados: Día 1: [${m.day1}] | Día 2: [${m.day2}] | Día 3: [${m.day3}]\n----------------------------------------`
-                ).join('\n\n');
+                    `[ID: ${m.id}] ${m.name} | Est: ${m.status} | Chat: ${m.chat} | Dados: [${m.day1}, ${m.day2}, ${m.day3}]`
+                ).join('\n');
 
                 if (result.rows.length === 0) listaComandantes = "No hay comandantes registrados actualmente.";
 
-                const contenidoArchivo = `💥 DOOMSDAY LOGISTICS - REGISTRO COMPLETO DE LA ALIANZA\n📌 Tipo de copia: ${motivo}\n📅 Fecha y Hora (Madrid): ${fechaHoy}\n👥 Total Miembros: ${result.rows.length}\n========================================\n\n${listaComandantes}`;
+                // Evitamos que Discord lo rechace recortando el bloque a una extensión segura en texto plano
+                const contenidoTexto = `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n👥 **Miembros Registrados:** \`${result.rows.length}\`\n\n\`\`\`text\n💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n========================================\n${listaComandantes.substring(0, 1500)}\n\`\`\``;
 
-                // Construimos la transmisión Multipart binaria para enviar un archivo .txt real
-                const boundary = '----WebKitFormBoundaryDoomsdayLogistics2026';
-                const payloadText = `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n👥 **Miembros Registrados:** \`${result.rows.length}\`\n📂 _El registro completo con los 180+ miembros viene adjunto en el archivo de texto inferior de forma ilimitada._`;
-
-                let part1 = `--${boundary}\r\nContent-Disposition: form-data; name="payload_json"\r\n\r\n${JSON.stringify({ content: payloadText })}\r\n`;
-                let part2 = `--${boundary}\r\nContent-Disposition: form-data; name="files"; filename="registro-doomsday.txt"\r\nContent-Type: text/plain\r\n\r\n${contenidoArchivo}\r\n--${boundary}--\r\n`;
-
-                const payloadBuffer = Buffer.concat([Buffer.from(part1, 'utf-8'), Buffer.from(part2, 'utf-8')]);
+                const payload = JSON.stringify({ content: contenidoTexto });
                 const urlObj = new URL(DISCORD_WEBHOOK_URL);
                 
                 const options = {
@@ -65,13 +59,13 @@ async function enviarRespaldoADiscord(motivo = "Automático") {
                     path: urlObj.pathname + urlObj.search,
                     method: 'POST',
                     headers: {
-                        'Content-Type': `multipart/form-data; boundary=${boundary}`,
-                        'Content-Length': payloadBuffer.length
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(payload)
                     }
                 };
 
                 const req = https.request(options, (res) => {
-                    console.log(`✅ Archivo adjunto enviado a Discord con código: ${res.statusCode}. Motivo: ${motivo}`);
+                    console.log(`✅ Respaldo enviado a Discord con código: ${res.statusCode}. Motivo: ${motivo}`);
                     resolve({ success: res.statusCode >= 200 && res.statusCode < 300 });
                 });
 
@@ -80,7 +74,7 @@ async function enviarRespaldoADiscord(motivo = "Automático") {
                     resolve({ success: false, error: e.message });
                 });
 
-                req.write(payloadBuffer);
+                req.write(payload);
                 req.end();
             });
         } catch (globalErr) {
@@ -89,6 +83,7 @@ async function enviarRespaldoADiscord(motivo = "Automático") {
         }
     });
 }
+
 
 
 // ⏰ CONFIGURACIÓN CRON: Envío automático a las 12:00 del mediodía y a las 00:00 de la noche todos los días (Hora Madrid)
