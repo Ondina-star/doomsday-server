@@ -165,11 +165,12 @@ app.get('/api/blacklist', async (req, res) => {
     }
 });
 // LA RUTA INYECTADA AQUÍ EN MEDIO:
-app.post('/api/forzar-respaldo-manual', async (req, res) => {
-    console.log("⚡ Señal de respaldo manual recibida por vía HTTP ordinaria.");
-    const resultado = await enviarRespaldoADiscord(`Manual HTTP - Operador: ${req.body.user || 'Héctor'}`);
-    res.json(resultado);
+app.post('/api/forzar-respaldo-manual', (req, res) => {
+    console.log("⚡ Señal recibida por HTTP. Liberando botón del operador Héctor.");
+    res.json({ success: true }); // Envía el visto bueno inmediato al móvil para que no se quede colgado
+    enviarRespaldoADiscord(`Manual HTTP - Operador: ${req.body.user || 'Héctor'}`); // Despacha el archivo adjunto en segundo plano
 });
+
 
 io.on('connection', (socket) => {
     console.log('🔗 Conectado:', socket.id);
