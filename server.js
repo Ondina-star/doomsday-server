@@ -48,25 +48,36 @@ async function enviarRespaldoADiscord(motivo = "Automático") {
 
                 if (result.rows.length === 0) listaComandantes = "No hay comandantes registrados actualmente.";
 
-                // Evitamos que Discord lo rechace recortando el bloque a una extensión segura en texto plano
-                const contenidoTexto = `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n👥 **Miembros Registrados:** \`${result.rows.length}\`\n\n\`\`\`text\n💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n========================================\n${listaComandantes.substring(0, 1500)}\n\`\`\``;
+                // Aseguramos que el bloque no supere los 1500 caracteres para evitar restricciones de Discord
+                if (listaComandantes.length > 1500) {
+                    listaComandantes = listaComandantes.substring(0, 1500) + "\n... (Lista truncada por espacio)";
+                }
 
-                const payload = JSON.stringify({ content: contenidoTexto });
-                const urlObj = new URL(DISCORD_WEBHOOK_URL);
-                
+                // Construimos el contenedor oficial JSON de Discord
+                const payloadObj = {
+                    content: `🚨 **Respaldo Doomsday de la Alianza** 🚨\n📌 **Tipo:** \`${motivo}\`\n📅 **Fecha/Hora:** \`${fechaHoy}\`\n👥 **Miembros Registrados:** \`${result.rows.length}\`\n\n\`\`\`text\n💥 DOOMSDAY LOGISTICS - REGISTRO DE MIEMBROS\n========================================\n${listaComandantes}\n\`\`\``
+                };
+
+                const payload = JSON.stringify(payloadObj);
+
+                // Configuración explícita del túnel seguro HTTPS con User-Agent de identificación obligatorio
                 const options = {
-                    hostname: urlObj.hostname,
-                    path: urlObj.pathname + urlObj.search,
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Content-Length': Buffer.byteLength(payload)
+                        'Content-Length': Buffer.byteLength(payload, 'utf-8'),
+                        'User-Agent': 'NodeJS-HTTPS-Client'
                     }
                 };
 
-                const req = https.request(options, (res) => {
-                    console.log(`✅ Respaldo enviado a Discord con código: ${res.statusCode}. Motivo: ${motivo}`);
-                    resolve({ success: res.statusCode >= 200 && res.statusCode < 300 });
+                // Despachamos la solicitud pasando la URL directa completa sin desgloses intermedios
+                const req = https.request(DISCORD_WEBHOOK_URL, options, (res) => {
+                    let responseData = '';
+                    res.on('data', (chunk) => { responseData += chunk; });
+                    res.on('end', () => {
+                        console.log(`✅ Antena Discord respondió. Código HTTP: ${res.statusCode}. Motivo: ${motivo}`);
+                        resolve({ success: res.statusCode >= 200 && res.statusCode < 300 });
+                    });
                 });
 
                 req.on('error', (e) => {
@@ -83,9 +94,6 @@ async function enviarRespaldoADiscord(motivo = "Automático") {
         }
     });
 }
-
-
-
 // ⏰ CONFIGURACIÓN CRON: Envío automático a las 12:00 del mediodía y a las 00:00 de la noche todos los días (Hora Madrid)
 cron.schedule('0 0,12 * * *', () => {
     console.log("⏰ Ejecutando cron automático de respaldo diario hacia Discord...");
