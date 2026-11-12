@@ -184,12 +184,12 @@
                 console.log("🔄 Sincronización en la nube completada.");
             });
                                // AVISO DE MIEMBRO YA REGISTRADO EN EL EVENTO Y LIMPIEZA VISUAL
+                        // AVISO DE MIEMBRO YA REGISTRADO EN EL EVENTO Y LIMPIEZA VISUAL
             socket.on('commander_id_duplicate', (info) => {
                 alert(`⚠️ AVISO: El ID "${info.id}" (${info.existingName}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
-                if (typeof fetchDataFromServer === 'function') {
-                    fetchDataFromServer();
-                }
+                fetchDataFromServer();
             });
+
         }
             function forzarRespaldoManual() {
             const btn = document.querySelector("button[onclick='forzarRespaldoManual()']");
