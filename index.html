@@ -311,11 +311,16 @@
         function addNewMember() {
             const id = document.getElementById("new-member-id").value.trim();
             const name = document.getElementById("new-member-name").value.trim();
-            if(!id || !name) return;
+            const errorEl = document.getElementById("add-member-error");
+            if (errorEl) errorEl.classList.add("hidden");
+
+            if (!id || !name) return;
             
-            if(blacklist.some(b => String(b.id).trim() === id)) { 
-                closeModal("add-member-modal");
-                mostrarAvisoPantalla("💀 ACCESS DENIED: Blacklisted.", "#ef4444");
+            if (blacklist.some(b => String(b.id).trim() === id)) { 
+                if (errorEl) {
+                    errorEl.innerText = "💀 ACCESS DENIED: Blacklisted.";
+                    errorEl.classList.remove("hidden");
+                }
                 return; 
             }
             
@@ -326,8 +331,10 @@
             // Comprobamos si el ID ya está en la lista del evento
             const repetido = eventsData[currentEvent].find(m => String(m.id).trim() === id);
             if (repetido) {
-                closeModal("add-member-modal");
-                mostrarAvisoPantalla(`⚠️ AVISO: El ID "${id}" (${repetido.name}) ya está en la lista del evento.`, "#f59e0b");
+                if (errorEl) {
+                    errorEl.innerText = `⚠️ AVISO: El ID "${id}" (${repetido.name}) ya está en la lista del evento.`;
+                    errorEl.classList.remove("hidden");
+                }
                 return;
             }
             
@@ -343,7 +350,7 @@
                 chat: "Out" 
             });
             
-            if(socket && socket.connected) {
+            if (socket && socket.connected) {
                 socket.emit('add_new_commander_cloud', { id: id, name: name });
             } else {
                 fetch(`${SERVER_URL}/api/commanders`, {
@@ -358,6 +365,7 @@
             closeModal("add-member-modal");
             renderApp();
         }
+
 
         function mostrarAvisoPantalla(mensaje, colorBorde = "#f59e0b") {
             let aviso = document.getElementById("custom-toast-alert");
