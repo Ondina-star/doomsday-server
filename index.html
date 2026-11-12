@@ -310,103 +310,6 @@
             const modalEl = document.getElementById(id);
             if (modalEl) modalEl.classList.remove("active"); 
         }
-        function addNewMember() {
-            const id = document.getElementById("new-member-id").value.trim();
-            const name = document.getElementById("new-member-name").value.trim();
-            const errorEl = document.getElementById("add-member-error");
-            if (errorEl) errorEl.classList.add("hidden");
-
-            if (!id || !name) return;
-            
-            if (blacklist.some(b => String(b.id).trim() === id)) { 
-                if (errorEl) {
-                    errorEl.innerText = "💀 ACCESS DENIED: Blacklisted.";
-                    errorEl.classList.remove("hidden");
-                }
-                return; 
-            }
-            
-            if (!eventsData[currentEvent]) {
-                eventsData[currentEvent] = [];
-            }
-
-            // Comprobamos si el ID ya está en la lista del evento
-            const repetido = eventsData[currentEvent].find(m => String(m.id).trim() === id);
-            if (repetido) {
-                if (errorEl) {
-                    errorEl.innerText = `⚠️ AVISO: El ID "${id}" (${repetido.name}) ya está en la lista del evento.`;
-                    errorEl.classList.remove("hidden");
-                }
-                return;
-            }
-            
-            eventsData[currentEvent].push({ 
-                id: id, 
-                name: name, 
-                identity_no: id, 
-                commander_name: name, 
-                day1: 0, 
-                day2: 0, 
-                day3: 0, 
-                status: "Pending", 
-                chat: "Out" 
-            });
-            
-            if (socket && socket.connected) {
-                socket.emit('add_new_commander_cloud', { id: id, name: name });
-            } else {
-                fetch(`${SERVER_URL}/api/commanders`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, name })
-                })
-                .then(() => { if(socket) socket.emit('add_new_commander_cloud', { id: id, name: name }); })
-                .catch(e => console.error("❌ Fallo de enlace HTTP alternativo:", e));
-            }
-            
-            closeModal("add-member-modal");
-            renderApp();
-        }
-
-
-        function mostrarAvisoPantalla(mensaje, colorBorde = "#f59e0b") {
-            let aviso = document.getElementById("custom-toast-alert");
-            if (!aviso) {
-                aviso = document.createElement("div");
-                aviso.id = "custom-toast-alert";
-                aviso.style.cssText = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#111827; color:#fef08a; padding:14px 20px; border-radius:8px; font-weight:bold; font-size:13px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.8); text-align:center; max-width:90%; transition:opacity 0.3s;";
-                document.body.appendChild(aviso);
-            }
-            aviso.style.border = `2px solid ${colorBorde}`;
-            aviso.innerText = mensaje;
-            aviso.style.opacity = "1";
-            aviso.style.display = "block";
-            
-            setTimeout(() => {
-                aviso.style.opacity = "0";
-                setTimeout(() => { aviso.style.display = "none"; }, 300);
-            }, 4000);
-        }
-
-
-        function mostrarAvisoPantalla(mensaje, colorBorde = "#f59e0b") {
-            let aviso = document.getElementById("custom-toast-alert");
-            if (!aviso) {
-                aviso = document.createElement("div");
-                aviso.id = "custom-toast-alert";
-                aviso.style.cssText = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#111827; color:#fef08a; padding:14px 20px; border-radius:8px; font-weight:bold; font-size:13px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.8); text-align:center; max-width:90%; transition:opacity 0.3s;";
-                document.body.appendChild(aviso);
-            }
-            aviso.style.border = `2px solid ${colorBorde}`;
-            aviso.innerText = mensaje;
-            aviso.style.opacity = "1";
-            aviso.style.display = "block";
-            
-            setTimeout(() => {
-                aviso.style.opacity = "0";
-                setTimeout(() => { aviso.style.display = "none"; }, 300);
-            }, 4000);
-        }
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
             if(!date || eventsData[date]) return;
@@ -569,13 +472,20 @@
             });
         }
         function applyFilters() { renderApp(); }
-                function ejecutarAltaMiembro() {
+        function ejecutarAltaMiembro() {
+            cons        function ejecutarAltaMiembro() {
             const id = document.getElementById("new-member-id").value.trim();
             const name = document.getElementById("new-member-name").value.trim();
             const err = document.getElementById("add-member-error");
             if (err) err.classList.add("hidden");
 
-            if (!id || !name) return;
+            if (!id || !name) {
+                if (err) {
+                    err.innerText = "⚠️ Escribe el ID y el Nombre del comandante.";
+                    err.classList.remove("hidden");
+                }
+                return;
+            }
 
             if (blacklist.some(b => String(b.id).trim() === id)) {
                 if (err) {
@@ -619,7 +529,8 @@
             document.getElementById("new-member-name").value = "";
             closeModal("add-member-modal");
             renderApp();
-                }
+        }
+
         
     </script>
 </body>
