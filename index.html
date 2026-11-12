@@ -304,56 +304,63 @@
             if (modalEl) modalEl.classList.remove("active"); 
         }
         function addNewMember() {
-            const id = document.getElementById("new-member-id").value.trim();
-            const name = document.getElementById("new-member-name").value.trim();
-            if(!id || !name) return;
-            
-            if(blacklist.some(b => String(b.id || '').trim() === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
-            
-            if (!eventsData[currentEvent]) {
-                eventsData[currentEvent] = [];
-            }
+            try {
+                const id = document.getElementById("new-member-id").value.trim();
+                const name = document.getElementById("new-member-name").value.trim();
+                if(!id || !name) return;
+                
+                if(blacklist.some(b => String(b.id || '').trim() === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
+                
+                if (!eventsData[currentEvent]) {
+                    eventsData[currentEvent] = [];
+                }
 
-            // FRENO VISUAL SEGURO: Protege contra valores vacíos para no bloquear la ventana
-            const miembroExistente = eventsData[currentEvent].find(m => 
-                String(m.id || '').trim() === id || String(m.identity_no || '').trim() === id
-            );
-            
-            if (miembroExistente) {
-                const nombreEncontrado = miembroExistente.name || miembroExistente.commander_name || 'Registrado';
-                alert(`⚠️ AVISO: El ID "${id}" (${nombreEncontrado}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
-                return;
+                // Detectamos automáticamente si es un array directo o un objeto con .members
+                const listaActual = Array.isArray(eventsData[currentEvent]) 
+                    ? eventsData[currentEvent] 
+                    : (eventsData[currentEvent].members || []);
+
+                // FRENO VISUAL DE DUPLICADOS: Comprobamos si el ID ya está en la lista del evento
+                const miembroExistente = listaActual.find(m => 
+                    String(m.id || '').trim() === id || String(m.identity_no || '').trim() === id
+                );
+                
+                if (miembroExistente) {
+                    const nombreEncontrado = miembroExistente.name || miembroExistente.commander_name || 'Registrado';
+                    alert(`⚠️ AVISO: El ID "${id}" (${nombreEncontrado}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
+                    return;
+                }
+                
+                listaActual.push({ 
+                    id: id, 
+                    name: name, 
+                    identity_no: id, 
+                    commander_name: name, 
+                    day1: 0, 
+                    day2: 0, 
+                    day3: 0, 
+                    status: "Pending", 
+                    chat: "Out" 
+                });
+                
+                if(socket && socket.connected) {
+                    socket.emit('add_new_commander_cloud', { id: id, name: name });
+                } else {
+                    fetch(`${SERVER_URL}/api/commanders`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id, name })
+                    })
+                    .then(() => { if(socket) socket.emit('add_new_commander_cloud', { id: id, name: name }); })
+                    .catch(e => console.error("❌ Fallo de enlace HTTP alternativo:", e));
+                }
+                
+                closeModal("add-member-modal");
+                renderApp();
+            } catch (error) {
+                alert("❌ Error en pantalla: " + error.message);
             }
-            
-            // CORREGIDO EN SINTAXIS MAXIMA: Satisface los alias relacionales de PostgreSQL inyectando ambas llaves de forma segura
-            eventsData[currentEvent].push({ 
-                id: id, 
-                name: name, 
-                identity_no: id, 
-                commander_name: name, 
-                day1: 0, 
-                day2: 0, 
-                day3: 0, 
-                status: "Pending", 
-                chat: "Out" 
-            });
-            
-            if(socket && socket.connected) {
-                socket.emit('add_new_commander_cloud', { id: id, name: name });
-            } else {
-                fetch(`${SERVER_URL}/api/commanders`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, name })
-                })
-                .then(() => { if(socket) socket.emit('add_new_commander_cloud', { id: id, name: name }); })
-                .catch(e => console.error("❌ Fallo de enlace HTTP alternativo:", e));
-            }
-            
-            closeModal("add-member-modal");
-            renderApp();
         }
-
 
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
