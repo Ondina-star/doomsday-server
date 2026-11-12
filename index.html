@@ -311,10 +311,22 @@
             const name = document.getElementById("new-member-name").value.trim();
             if(!id || !name) return;
             
-            if(blacklist.some(b => b.id === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
+            if(blacklist.some(b => String(b.id).trim() === id)) { 
+                closeModal("add-member-modal");
+                mostrarAvisoPantalla("💀 ACCESS DENIED: Blacklisted.", "#ef4444");
+                return; 
+            }
             
             if (!eventsData[currentEvent]) {
                 eventsData[currentEvent] = [];
+            }
+
+            // Comprobamos si el ID ya está en la lista del evento
+            const repetido = eventsData[currentEvent].find(m => String(m.id).trim() === id);
+            if (repetido) {
+                closeModal("add-member-modal");
+                mostrarAvisoPantalla(`⚠️ AVISO: El ID "${id}" (${repetido.name}) ya está en la lista del evento.`, "#f59e0b");
+                return;
             }
             
             eventsData[currentEvent].push({ 
@@ -345,7 +357,24 @@
             renderApp();
         }
 
-
+        function mostrarAvisoPantalla(mensaje, colorBorde = "#f59e0b") {
+            let aviso = document.getElementById("custom-toast-alert");
+            if (!aviso) {
+                aviso = document.createElement("div");
+                aviso.id = "custom-toast-alert";
+                aviso.style.cssText = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#111827; color:#fef08a; padding:14px 20px; border-radius:8px; font-weight:bold; font-size:13px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.8); text-align:center; max-width:90%; transition:opacity 0.3s;";
+                document.body.appendChild(aviso);
+            }
+            aviso.style.border = `2px solid ${colorBorde}`;
+            aviso.innerText = mensaje;
+            aviso.style.opacity = "1";
+            aviso.style.display = "block";
+            
+            setTimeout(() => {
+                aviso.style.opacity = "0";
+                setTimeout(() => { aviso.style.display = "none"; }, 300);
+            }, 4000);
+        }
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
             if(!date || eventsData[date]) return;
