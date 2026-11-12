@@ -105,7 +105,7 @@
             </div>
         </main>
     </div>
-            <div id="add-member-modal" class="modal">
+                <div id="add-member-modal" class="modal">
         <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
             <h3 class="text-lg font-bold text-green-500 mb-4">Add New Commander</h3>
             <div class="space-y-3 mb-4">
@@ -115,26 +115,11 @@
             </div>
             <div class="flex justify-end gap-2">
                 <button onclick="document.getElementById('add-member-error').classList.add('hidden'); closeModal('add-member-modal');" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Cancel</button>
-                <button onclick="
-                    const id = document.getElementById('new-member-id').value.trim();
-                    const name = document.getElementById('new-member-name').value.trim();
-                    const err = document.getElementById('add-member-error');
-                    err.classList.add('hidden');
-                    if(!id || !name) return;
-                    if(blacklist.some(b => String(b.id).trim() === id)) { err.innerText='💀 ACCESS DENIED: Blacklisted.'; err.classList.remove('hidden'); return; }
-                    if(!eventsData[currentEvent]) eventsData[currentEvent] = [];
-                    const rep = eventsData[currentEvent].find(m => String(m.id).trim() === id);
-                    if(rep) { err.innerText=`⚠️ AVISO: El ID '${id}' (${rep.name}) ya está en la lista del evento.`; err.classList.remove('hidden'); return; }
-                    eventsData[currentEvent].push({ id, name, identity_no: id, commander_name: name, day1: 0, day2: 0, day3: 0, status: 'Pending', chat: 'Out' });
-                    if(socket && socket.connected) { socket.emit('add_new_commander_cloud', { id, name }); }
-                    document.getElementById('new-member-id').value = '';
-                    document.getElementById('new-member-name').value = '';
-                    closeModal('add-member-modal');
-                    renderApp();
-                " class="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded text-xs font-bold">Add</button>
+                <button onclick="ejecutarAltaMiembro()" class="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded text-xs font-bold">Add</button>
             </div>
         </div>
     </div>
+
 
 
     <div id="event-modal" class="modal">
