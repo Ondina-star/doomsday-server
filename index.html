@@ -313,6 +313,13 @@
             if (!eventsData[currentEvent]) {
                 eventsData[currentEvent] = [];
             }
+
+            // FRENO VISUAL DE DUPLICADOS: Comprobamos si el ID ya está en la lista del evento antes de añadirlo o enviarlo
+            const miembroExistente = eventsData[currentEvent].find(m => String(m.id).trim() === id || String(m.identity_no).trim() === id);
+            if (miembroExistente) {
+                alert(`⚠️ AVISO: El ID "${id}" (${miembroExistente.name || miembroExistente.commander_name}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
+                return;
+            }
             
             // CORREGIDO EN SINTAXIS MAXIMA: Satisface los alias relacionales de PostgreSQL inyectando ambas llaves de forma segura
             eventsData[currentEvent].push({ 
@@ -342,6 +349,7 @@
             closeModal("add-member-modal");
             renderApp();
         }
+
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
             if(!date || eventsData[date]) return;
