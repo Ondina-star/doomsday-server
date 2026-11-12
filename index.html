@@ -308,16 +308,20 @@
             const name = document.getElementById("new-member-name").value.trim();
             if(!id || !name) return;
             
-            if(blacklist.some(b => b.id === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
+            if(blacklist.some(b => String(b.id || '').trim() === id)) { alert("💀 ACCESS DENIED: Blacklisted."); return; }
             
             if (!eventsData[currentEvent]) {
                 eventsData[currentEvent] = [];
             }
 
-            // FRENO VISUAL DE DUPLICADOS: Comprobamos si el ID ya está en la lista del evento antes de añadirlo o enviarlo
-            const miembroExistente = eventsData[currentEvent].find(m => String(m.id).trim() === id || String(m.identity_no).trim() === id);
+            // FRENO VISUAL SEGURO: Protege contra valores vacíos para no bloquear la ventana
+            const miembroExistente = eventsData[currentEvent].find(m => 
+                String(m.id || '').trim() === id || String(m.identity_no || '').trim() === id
+            );
+            
             if (miembroExistente) {
-                alert(`⚠️ AVISO: El ID "${id}" (${miembroExistente.name || miembroExistente.commander_name}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
+                const nombreEncontrado = miembroExistente.name || miembroExistente.commander_name || 'Registrado';
+                alert(`⚠️ AVISO: El ID "${id}" (${nombreEncontrado}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
                 return;
             }
             
@@ -349,6 +353,7 @@
             closeModal("add-member-modal");
             renderApp();
         }
+
 
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
