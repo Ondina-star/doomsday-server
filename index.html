@@ -569,6 +569,58 @@
             });
         }
         function applyFilters() { renderApp(); }
+                function ejecutarAltaMiembro() {
+            const id = document.getElementById("new-member-id").value.trim();
+            const name = document.getElementById("new-member-name").value.trim();
+            const err = document.getElementById("add-member-error");
+            if (err) err.classList.add("hidden");
+
+            if (!id || !name) return;
+
+            if (blacklist.some(b => String(b.id).trim() === id)) {
+                if (err) {
+                    err.innerText = "💀 ACCESS DENIED: Blacklisted.";
+                    err.classList.remove("hidden");
+                }
+                return;
+            }
+
+            if (!eventsData[currentEvent]) {
+                eventsData[currentEvent] = [];
+            }
+
+            // Comprobamos si el ID ya está en la lista del evento
+            const rep = eventsData[currentEvent].find(m => String(m.id).trim() === id);
+            if (rep) {
+                if (err) {
+                    err.innerText = "⚠️ AVISO: El ID " + id + " (" + rep.name + ") ya está en la lista del evento.";
+                    err.classList.remove("hidden");
+                }
+                return;
+            }
+
+            eventsData[currentEvent].push({
+                id: id,
+                name: name,
+                identity_no: id,
+                commander_name: name,
+                day1: 0,
+                day2: 0,
+                day3: 0,
+                status: "Pending",
+                chat: "Out"
+            });
+
+            if (socket && socket.connected) {
+                socket.emit('add_new_commander_cloud', { id: id, name: name });
+            }
+
+            document.getElementById("new-member-id").value = "";
+            document.getElementById("new-member-name").value = "";
+            closeModal("add-member-modal");
+            renderApp();
+                }
+        
     </script>
 </body>
 </html>
