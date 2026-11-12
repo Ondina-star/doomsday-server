@@ -316,13 +316,6 @@
             if (!eventsData[currentEvent]) {
                 eventsData[currentEvent] = [];
             }
-
-            // FRENO VISUAL LIMPIO: Comprueba en la lista cargada si el ID ya está en el evento
-            const repetido = eventsData[currentEvent].find(m => String(m.id).trim() === id);
-            if (repetido) {
-                alert(`⚠️ AVISO: El ID "${id}" (${repetido.name}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
-                return;
-            }
             
             eventsData[currentEvent].push({ 
                 id: id, 
@@ -351,6 +344,7 @@
             closeModal("add-member-modal");
             renderApp();
         }
+
 
         function createNewEvent() {
             const date = document.getElementById("new-event-date").value;
