@@ -105,12 +105,13 @@
             </div>
         </main>
     </div>
-    <div id="add-member-modal" class="modal">
+        <div id="add-member-modal" class="modal">
         <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
             <h3 class="text-lg font-bold text-green-500 mb-4">Add New Commander</h3>
             <div class="space-y-3 mb-4">
                 <input type="text" id="new-member-id" placeholder="IDENTITY NUMBER" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-yellow-400 font-bold focus:outline-none">
                 <input type="text" id="new-member-name" placeholder="COMMANDER NAME" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white focus:outline-none">
+                <p id="add-member-error" class="text-amber-400 text-xs font-bold hidden mt-2"></p>
             </div>
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('add-member-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Cancel</button>
@@ -118,6 +119,7 @@
             </div>
         </div>
     </div>
+
     <div id="event-modal" class="modal">
         <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
             <h3 class="text-lg font-bold text-yellow-500 mb-4">Create New Event</h3>
