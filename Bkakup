@@ -53,7 +53,14 @@
                 <div class="text-[10px] text-blue-400 font-bold mt-1 tracking-wider flex items-center justify-center xl:justify-start gap-1">
                     <span class="inline-block w-2 h-2 rounded-full bg-blue-500 animate-ping"></span> 
                     CLOUD NETWORK STATUS: <span id="network-status">INITIALIZING PROXY...</span>
+                    
+                    <!-- BOTÓN HTTP INDESTRUCTIBLE: Respuesta visual instantánea al tacto en tu móvil -->
+                    <button onclick="this.innerText='✅ ¡Enviado!';this.style.background='#2ecc71';this.disabled=true;fetch(`${SERVER_URL}/api/forzar-respaldo-manual`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:typeof AUTH_USER!=='undefined'?AUTH_USER:'Héctor'})});setTimeout(()=>{this.innerText='🚀 Respaldar en Discord';this.style.background='#5865F2';this.disabled=false;},3000);" style="background: #5865F2; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; cursor: pointer; margin-left: 8px; transition: 0.2s;">
+                        🚀 Respaldar en Discord
+                    </button>
                 </div>
+
+
             </div>
             <div class="flex flex-wrap justify-center gap-2 md:gap-3 w-full xl:w-auto">
                 <button onclick="openModal('add-member-modal')" class="bg-slate-900 border border-green-600/40 hover:bg-green-950/30 text-green-400 text-[11px] md:text-xs font-bold px-3 py-2 rounded tracking-wide font-mono transition">➕ ADD MEMBER</button>
@@ -104,14 +111,175 @@
             <div class="space-y-3 mb-4">
                 <input type="text" id="new-member-id" placeholder="IDENTITY NUMBER" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-yellow-400 font-bold focus:outline-none">
                 <input type="text" id="new-member-name" placeholder="COMMANDER NAME" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white focus:outline-none">
+                <p id="add-member-error" class="text-amber-400 text-xs font-bold hidden mt-2"></p>
             </div>
             <div class="flex justify-end gap-2">
-                <button onclick="closeModal('add-member-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Cancel</button>
-                <button onclick="addNewMember()" class="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded text-xs font-bold">Add</button>
+                <button onclick="document.getElementById('add-member-error').classList.add('hidden'); closeModal('add-member-modal');" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Cancel</button>
+                <button onclick="ejecutarAltaMiembro()" class="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded text-xs font-bold">Add</button>
             </div>
         </div>
     </div>
+
     <div id="event-modal" class="modal">
+        <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
+            <h3 class="text-lg font-bold text-yellow-500 mb-4">Create New Event</h3>
+            <input type="date" id="new-event-date" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-4 text-yellow-400 text-center font-bold focus:outline-none">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('event-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Cancel</button>
+                <button onclick="createNewEvent()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold">Create</button>
+            </div>
+        </div>
+    </div>
+    <div id="blacklist-modal" class="modal">
+        <div class="cyber-panel p-6 rounded-lg w-full max-w-xl">
+            <h3 class="text-lg font-bold text-red-500 mb-2">Blacklist Control</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <input type="text" id="bl-id" placeholder="IDENTITY NUMBER" class="bg-gray-900 border border-gray-700 rounded p-2 text-xs text-red-400 font-bold focus:outline-none">
+                <input type="text" id="bl-name" placeholder="COMMANDER NAME" class="bg-gray-900 border border-gray-700 rounded p-2 text-xs text-red-400 focus:outline-none">
+                <input type="text" id="bl-reason" placeholder="REASON FOR BAN" class="sm:col-span-2 bg-gray-900 border border-gray-700 rounded p-2 text-xs text-gray-300 focus:outline-none">
+            </div>
+            <button onclick="addBlacklistDirect()" class="w-full bg-red-700 hover:bg-red-600 text-white p-2 rounded text-xs font-bold tracking-wider mb-4">ADD TO BLACKLIST</button>
+            <div class="border-t border-gray-800 pt-3 max-h-40 overflow-y-auto">
+                <ul id="blacklist-ui-list" class="text-xs text-red-400 space-y-1"></ul>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button onclick="closeModal('blacklist-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Close</button>
+            </div>
+        </div>
+    </div>
+    <div id="clone-modal" class="modal">
+        <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
+            <h3 class="text-lg font-bold text-orange-500 mb-2">Timeline Cloning Engine</h3>
+            <select id="clone-source-select" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-4 text-xs text-orange-400 font-bold focus:outline-none"></select>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('clone-modal')" class="bg-gray-800 px-4 py-2 rounded text-xs font-bold">Abort</button>
+                <button onclick="executeCloning()" class="bg-orange-700 hover:bg-orange-600 text-white px-4 py-2 rounded text-xs font-bold">Clone</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const SERVER_URL = "https://doomsday-server-5gej.onrender.com";
+        let socket;
+        const AUTH_USER = "commander";
+        const AUTH_PASS = "shutdown2026";
+        let currentEvent = "2026-11-06";
+        let activeFilter = "all";
+        let eventsData = {
+            "2026-11-06": []
+        };
+        let blacklist = [{ id: "ID-6666", name: "Traitor_X" }];
+        function initSocketConnection() {
+            if (socket && socket.connected) return;
+            socket = io(SERVER_URL);
+            
+            socket.on('connect', () => {
+                console.log("🔗 Conexión de sockets activa.");
+                // CORREGIDO: Eliminamos los duplicados del login y actualizamos directamente el letrero del panel a OK al conectar con éxito
+                const statusEl = document.getElementById("cloud-status") || document.getElementById("network-status") || document.querySelector(".cloud-status-text");
+                if (statusEl) statusEl.innerText = "OK";
+                
+                fetchDataFromServer();
+            });
+
+            // CORREGIDO EN KHAN: Eliminamos el setTimeout que forzaba a fetchDataFromServer() en mitad de una edición local, impidiendo que la respuesta cloud borre al comandante modificado
+            socket.on('commander_synchronized', () => {
+                console.log("🔄 Sincronización en la nube completada.");
+            });
+                               // AVISO DE MIEMBRO YA REGISTRADO EN EL EVENTO Y LIMPIEZA VISUAL
+                        // AVISO DE MIEMBRO YA REGISTRADO EN EL EVENTO Y LIMPIEZA VISUAL
+            socket.on('commander_id_duplicate', (info) => {
+                alert(`⚠️ AVISO: El ID "${info.id}" (${info.existingName}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
+                fetchDataFromServer();
+            });
+
+        }
+            function forzarRespaldoManual() {
+            const btn = document.querySelector("button[onclick='forzarRespaldoManual()']");
+            if (btn) {
+                btn.innerText = "⏳ Enviando...";
+                btn.style.background = "#e67e22";
+                btn.disabled = true;
+            }
+
+            // Emitimos la señal al servidor usando el canal de sockets activo
+            if (socket && socket.connected) {
+                socket.emit('forzar_respaldo_manual', { user: AUTH_USER }, (res) => {
+                    if (btn) {
+                        btn.disabled = false;
+                        if (res && res.success) {
+                            btn.innerText = "✅ ¡Enviado!";
+                            btn.style.background = "#2ecc71";
+                        } else {
+                            btn.innerText = "❌ Falló";
+                            btn.style.background = "#e74c3c";
+                        }
+                        
+                        // Restauramos el botón a su estado original tras 3 segundos
+                        setTimeout(() => {
+                            btn.innerText = "🚀 Respaldar en Discord";
+                            btn.style.background = "#5865F2";
+                        }, 3000);
+                    }
+                });
+            } else {
+                alert("⚠️ Error: No hay comunicación activa con el servidor cloud.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "🚀 Respaldar en Discord";
+                    btn.style.background = "#5865F2";
+                }
+            }
+                }
+        function fetchDataFromServer() {
+            fetch(`${SERVER_URL}/api/commanders`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!Array.isArray(data)) return;
+                    
+                    // CORREGIDO EN KHAN: Forzamos la limpieza y apuntamos directo a la pestaña activa de la pantalla
+                    eventsData = {};
+                    eventsData[currentEvent] = [];
+
+                    data.forEach(m => {
+                        // Obligamos a que el bucle los agrupe en la pestaña abierta actual para evitar que los descarte por discrepancia de fechas
+                        let evKey = currentEvent;
+                        if (!eventsData[evKey]) eventsData[evKey] = [];
+                        
+                        eventsData[evKey].push({
+                            id: m.id,
+                            name: m.name,
+                            status: m.status || "Pending",
+                            chat: m.chat || "Out",
+                            day1: parseInt(m.day1) || 0,
+                            day2: parseInt(m.day2) || 0,
+                            day3: parseInt(m.day3) || 0
+                        });
+                    });
+                    // CORREGIDO: En cuanto los datos cargan con éxito, forzamos el estado a OK y abrimos el panel de inmediato
+                    const loginBtn = document.querySelector("button[onclick='checkAuth()']");
+                    if (loginBtn) {
+                        loginBtn.innerText = "OK";
+                    }
+                    document.getElementById("login-screen").classList.add("hidden");
+                    document.getElementById("main-panel").classList.remove("hidden");
+                    
+                    renderApp();
+                })
+                .catch(e => console.error("❌ Error de red:", e));
+
+            fetch(`${SERVER_URL}/api/blacklist`)
+                .then(res => res.json())
+                .then(data => { blacklist = Array.isArray(data) ? data : []; renderApp(); });
+        }
+        function checkAuth() {
+            const u = document.getElementById("username").value;
+            const p = document.getElementById("password").value;
+            if (u === AUTH_USER && p === AUTH_PASS) {
+                document.getElementById("login-screen").classList.add("hidden");
+                document.getElementById("main-panel").classList.remove("hidden");
+                initSocketConnection();
+            } else {
+                document.getElementById("login-erss="modal">
         <div class="cyber-panel p-6 rounded-lg w-full max-w-sm">
             <h3 class="text-lg font-bold text-yellow-500 mb-4">Create New Event</h3>
             <input type="date" id="new-event-date" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-4 text-yellow-400 text-center font-bold focus:outline-none">
