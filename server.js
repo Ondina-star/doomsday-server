@@ -244,14 +244,16 @@ io.on('connection', (socket) => {
     socket.on('delete_commander_cloud', async (data) => {
         try {
             const id = String(data.id || data.commander_id).trim();
+            const event_date = String(data.event_date || '2026-11-06').trim();
             if (!id) return;
-            await pool.query("DELETE FROM commanders WHERE TRIM(id) = $1", [id]);
-            console.log(`🗑️ Comandante eliminado: ${id}`);
+            await pool.query("DELETE FROM commanders WHERE TRIM(id) = $1 AND TRIM(event_date) = $2", [id, event_date]);
+            console.log(`🗑️ Comandante eliminado (${event_date}): ${id}`);
             io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error eliminando comandante:", e);
         }
     });
+
         // ELIMINAR UN EVENTO COMPLETO DE LA BASE DE DATOS
     socket.on('delete_event_cloud', async (data) => {
         try {
