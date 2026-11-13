@@ -338,6 +338,7 @@
             if (modalEl) modalEl.classList.remove("active"); 
         }
         function createNewEvent() {
+            if (isViewerMode) return;
             const date = document.getElementById("new-event-date").value;
             if(!date || eventsData[date]) return;
             
@@ -349,7 +350,6 @@
             }
             currentEvent = date;
 
-            // AGREGADO CRÍTICO: Emitimos la nueva fecha a PostgreSQL de Render para que no se borre al actualizar
             if(socket && socket.connected) {
                 socket.emit('add_new_event_cloud', { date: date });
             }
@@ -357,7 +357,9 @@
             closeModal("event-modal");
             renderApp();
         }
+
         function addBlacklistDirect() {
+            if (isViewerMode) return;
             const id = document.getElementById("bl-id").value.trim();
             const name = document.getElementById("bl-name").value.trim();
             if(!id || !name) return;
@@ -365,14 +367,18 @@
             eventsData[currentEvent] = eventsData[currentEvent].filter(m => m.id !== id);
             renderApp();
         }
+
         function executeCloning() {
+            if (isViewerMode) return;
             const source = document.getElementById("clone-source-select").value;
             if(!source) return;
             eventsData[currentEvent] = eventsData[source].map(m => ({ id: m.id, name: m.name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" }));
             closeModal("clone-modal");
             renderApp();
         }
-                function toggleStatus(idKey) {
+
+        function toggleStatus(idKey) {
+            if (isViewerMode) return;
             let list = eventsData[currentEvent] || [];
             let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
             if (!realMember) return;
@@ -391,6 +397,7 @@
         }
 
         function toggleChat(idKey) {
+            if (isViewerMode) return;
             let list = eventsData[currentEvent] || [];
             let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
             if (!realMember) return;
@@ -403,6 +410,7 @@
         }
 
         function updateDice(idKey, day, change) {
+            if (isViewerMode) return;
             let list = eventsData[currentEvent] || [];
             let realMember = list.find(m => String(m.id || m.identity_no) === String(idKey));
             if (!realMember) return;
@@ -419,18 +427,33 @@
             renderApp();
         }
 
+        function deleteMember(idKey, memberName) {
+            if (isViewerMode) return;
+            if (!confirm(`⚠️ ¿Seguro que quieres eliminar a "${memberName}" (ID: ${idKey}) de la lista?`)) return;
+
+            if (eventsData[currentEvent]) {
+                eventsData[currentEvent] = eventsData[currentEvent].filter(m => String(m.id || m.identity_no).trim() !== String(idKey).trim());
+            }
+
+            if (socket && socket.connected) {
+                socket.emit('delete_commander_cloud', { id: idKey });
+            }
+
+            renderApp();
+        }
+
         function switchEvent() { currentEvent = document.getElementById("event-selector").value; renderApp(); }
         function setFilter(type) { activeFilter = type; renderApp(); }
 
-        // ☢️ FUNCIÓN AUXILIAR DE SEGURIDAD: Sanea caracteres especiales (corchetes, símbolos de clan, etc.) para evitar bloqueos en el HTML
         function escapeHTML(str) {
             if (!str) return "";
             return str.replace(/&/g, "&amp;")
                       .replace(/</g, "&lt;")
                       .replace(/>/g, "&gt;")
                       .replace(/"/g, "&quot;")
-                      .replace(/'/g, "&#039;");
+                      .replace(/'/g, "'");
         }
+
         function renderApp() {
             const body = document.getElementById("member-table-body");
             if(!body) return;
