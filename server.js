@@ -161,6 +161,17 @@ app.get('/api/blacklist', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+app.get('/api/events', async (req, res) => {
+    try {
+        await pool.query("CREATE TABLE IF NOT EXISTS events (event_date VARCHAR(50) PRIMARY KEY)");
+        await pool.query("INSERT INTO events (event_date) VALUES ('2026-11-06') ON CONFLICT DO NOTHING");
+        const result = await pool.query("SELECT event_date FROM events ORDER BY event_date ASC");
+        res.json(result.rows.map(r => r.event_date));
+    } catch (e) {
+        res.json(['2026-11-06']);
+    }
+});
+
 // LA RUTA INYECTADA AQUÍ EN MEDIO:
 app.post('/api/forzar-respaldo-manual', (req, res) => {
     console.log("⚡ Señal recibida por HTTP. Forzando liberación visual inmediata de la pantalla.");
