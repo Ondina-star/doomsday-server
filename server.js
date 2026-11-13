@@ -281,10 +281,10 @@ io.on('connection', (socket) => {
     });
     
 
-    socket.on('update_commander_data', async (data) => {
+        socket.on('update_commander_data', async (data) => {
         try {
-            // CORREGIDO EN CONTROL: Forzamos la limpieza absoluta de espacios invisibles en el ID
             const commander_id = String(data.commander_id || data.id || data.identity_no).trim();
+            const event_date = String(data.event_date || '2026-11-06').trim();
             const { field, value } = data;
             
             if (!commander_id || !field) return console.warn("⚠️ Operación abortada: Parámetros insuficientes.");
@@ -294,17 +294,19 @@ io.on('connection', (socket) => {
             if (field === 'day2_packs') databaseField = 'day2';
             if (field === 'day3_packs') databaseField = 'day3';
 
-            // Saneamos el valor forzando minúsculas y limpiando espacios si es un texto (como los estados 'confirmed')
             const safeValue = (typeof value === 'string') ? value.toLowerCase().trim() : value;
 
-            // CORREGIDO EN CONTINGENCIA: Usamos TRIM(id) para que PostgreSQL ignore espacios invisibles y suelde el cambio en el disco duro real
-            await pool.query(`UPDATE commanders SET ${databaseField} = $1 WHERE TRIM(id) = $2`, [safeValue, commander_id]);
+            await pool.query(
+                `UPDATE commanders SET ${databaseField} = $1 WHERE TRIM(id) = $2 AND TRIM(event_date) = $3`, 
+                [safeValue, commander_id, event_date]
+            );
             
             io.emit('commander_synchronized');
         } catch (e) {
             console.error("❌ Error crítico en update_commander_data:", e);
         }
     });
+
 });
 
 
