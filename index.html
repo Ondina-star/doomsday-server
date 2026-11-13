@@ -661,10 +661,11 @@
                 status: "Pending",
                 chat: "Out"
             });
-
+            
             if (socket && socket.connected) {
-                socket.emit('add_new_commander_cloud', { id: id, name: name });
+                socket.emit('add_new_commander_cloud', { id: id, name: name, event_date: currentEvent });
             }
+
 
             document.getElementById("new-member-id").value = "";
             document.getElementById("new-member-name").value = "";
