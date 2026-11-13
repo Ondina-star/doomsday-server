@@ -424,11 +424,32 @@
             renderApp();
         }
 
-        function executeCloning() {
+                function executeCloning() {
             if (isViewerMode) return;
             const source = document.getElementById("clone-source-select").value;
-            if(!source) return;
-            eventsData[currentEvent] = eventsData[source].map(m => ({ id: m.id, name: m.name, day1: 0, day2: 0, day3: 0, status: "Pending", chat: "Out" }));
+            if(!source || !eventsData[source]) return;
+            
+            eventsData[currentEvent] = eventsData[source].map(m => ({ 
+                id: m.id, 
+                name: m.name, 
+                day1: 0, 
+                day2: 0, 
+                day3: 0, 
+                status: "Pending", 
+                chat: "Out" 
+            }));
+
+            // Guardamos cada miembro clonado en PostgreSQL bajo la fecha del nuevo evento
+            if (socket && socket.connected) {
+                eventsData[currentEvent].forEach(m => {
+                    socket.emit('add_new_commander_cloud', { 
+                        id: m.id, 
+                        name: m.name, 
+                        event_date: currentEvent 
+                    });
+                });
+            }
+
             closeModal("clone-modal");
             renderApp();
         }
@@ -441,13 +462,12 @@
             
             let nextStatus = "Pending";
             if (realMember.status === "Pending") nextStatus = "Confirmed";
-            else if (realMember.status === "Confirmed") nextStatus = "Canceled";
-            else if (realMember.status === "Canceled") nextStatus = "Waitlist";
+            else if (realMember.status === "Confirmed") nextStatus = "Waitlist";
             else nextStatus = "Pending";
             
             realMember.status = nextStatus;
             if (socket && socket.connected) {
-                socket.emit("update_commander_data", { commander_id: idKey, field: "status", value: nextStatus });
+                socket.emit("update_commander_data", { commander_id: idKey, field: "status", value: nextStatus, event_date: currentEvent });
             }
             renderApp();
         }
@@ -460,7 +480,7 @@
             
             realMember.chat = realMember.chat === "In Chat" ? "Out" : "In Chat";
             if (socket && socket.connected) {
-                socket.emit('update_commander_data', { commander_id: idKey, field: 'chat', value: realMember.chat });
+                socket.emit('update_commander_data', { commander_id: idKey, field: 'chat', value: realMember.chat, event_date: currentEvent });
             }
             renderApp();
         }
@@ -478,7 +498,7 @@
             
             let targetValue = day === 1 ? realMember.day1 : (day === 2 ? realMember.day2 : realMember.day3);
             if (socket && socket.connected) {
-                socket.emit('update_commander_data', { commander_id: idKey, field: fieldName, value: targetValue });
+                socket.emit('update_commander_data', { commander_id: idKey, field: fieldName, value: targetValue, event_date: currentEvent });
             }
             renderApp();
         }
@@ -492,11 +512,12 @@
             }
 
             if (socket && socket.connected) {
-                socket.emit('delete_commander_cloud', { id: idKey });
+                socket.emit('delete_commander_cloud', { id: idKey, event_date: currentEvent });
             }
 
             renderApp();
         }
+
 
         function switchEvent() { currentEvent = document.getElementById("event-selector").value; renderApp(); }
         function setFilter(type) { activeFilter = type; renderApp(); }
