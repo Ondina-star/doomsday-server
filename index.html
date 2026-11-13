@@ -234,18 +234,40 @@
                 }
             }
         }
-
         function fetchDataFromServer() {
-            fetch(`${SERVER_URL}/api/commanders`)
+            // 1. Primero descargamos todas las fechas de eventos guardadas en la nube
+            fetch(`${SERVER_URL}/api/events`)
+                .then(res => res.json())
+                .then(eventDates => {
+                    const fechas = (Array.isArray(eventDates) && eventDates.length > 0) ? eventDates : ["2026-11-06"];
+                    const selector = document.getElementById("event-selector");
+                    if (selector) {
+                        selector.innerHTML = "";
+                        fechas.forEach(dateStr => {
+                            if (!eventsData[dateStr]) eventsData[dateStr] = [];
+                            selector.innerHTML += `<option value="${dateStr}">DEPLOYMENT: ${dateStr}</option>`;
+                        });
+                        if (fechas.includes(currentEvent)) {
+                            selector.value = currentEvent;
+                        } else {
+                            currentEvent = fechas[fechas.length - 1];
+                            selector.value = currentEvent;
+                        }
+                    }
+
+                    // 2. Ahora descargamos los comandantes y los colocamos en su fecha correspondiente
+                    return fetch(`${SERVER_URL}/api/commanders`);
+                })
                 .then(res => res.json())
                 .then(data => {
                     if (!Array.isArray(data)) return;
-                    
-                    eventsData = {};
-                    eventsData[currentEvent] = [];
+
+                    // Limpiamos los arrays de cada evento manteniendo las fechas creadas
+                    Object.keys(eventsData).forEach(k => { eventsData[k] = []; });
+                    if (!eventsData[currentEvent]) eventsData[currentEvent] = [];
 
                     data.forEach(m => {
-                        let evKey = currentEvent;
+                        let evKey = (m.event_date && eventsData[m.event_date]) ? m.event_date : currentEvent;
                         if (!eventsData[evKey]) eventsData[evKey] = [];
                         
                         eventsData[evKey].push({
