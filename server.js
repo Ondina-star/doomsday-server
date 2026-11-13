@@ -244,6 +244,19 @@ io.on('connection', (socket) => {
         }
     });
     
+        // GUARDAR NUEVO EVENTO EN LA NUBE
+    socket.on('add_new_event_cloud', async (data) => {
+        try {
+            const eventDate = String(data.date || data.event_date).trim();
+            if (!eventDate) return;
+            await pool.query("CREATE TABLE IF NOT EXISTS events (event_date VARCHAR(50) PRIMARY KEY)");
+            await pool.query("INSERT INTO events (event_date) VALUES ($1) ON CONFLICT DO NOTHING", [eventDate]);
+            console.log(`📅 Evento guardado en la nube: ${eventDate}`);
+            io.emit('commander_synchronized');
+        } catch (e) {
+            console.error("❌ Error guardando evento:", e);
+        }
+    });
     
 
     socket.on('update_commander_data', async (data) => {
