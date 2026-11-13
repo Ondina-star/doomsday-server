@@ -159,9 +159,13 @@
     </div>
     <script>
         const SERVER_URL = "https://doomsday-server-5gej.onrender.com";
-        let socket;
+        let socket
+        
         const AUTH_USER = "commander";
         const AUTH_PASS = "shutdown2026";
+        const VIEWER_USER = "Viewer";
+        const VIEWER_PASS = "Shutdown";
+        let isViewerMode = false;
         let currentEvent = "2026-11-06";
         let activeFilter = "all";
         let eventsData = {
@@ -174,26 +178,24 @@
             
             socket.on('connect', () => {
                 console.log("🔗 Conexión de sockets activa.");
-                // CORREGIDO: Eliminamos los duplicados del login y actualizamos directamente el letrero del panel a OK al conectar con éxito
                 const statusEl = document.getElementById("cloud-status") || document.getElementById("network-status") || document.querySelector(".cloud-status-text");
-                if (statusEl) statusEl.innerText = "OK";
+                if (statusEl) statusEl.innerText = isViewerMode ? "OK (VIEW ONLY)" : "OK";
                 
                 fetchDataFromServer();
             });
 
-            // CORREGIDO EN KHAN: Eliminamos el setTimeout que forzaba a fetchDataFromServer() en mitad de una edición local, impidiendo que la respuesta cloud borre al comandante modificado
             socket.on('commander_synchronized', () => {
                 console.log("🔄 Sincronización en la nube completada.");
             });
-                               // AVISO DE MIEMBRO YA REGISTRADO EN EL EVENTO Y LIMPIEZA VISUAL
-                        // AVISO DE MIEMBRO YA REGISTRADO EN EL EVENTO Y LIMPIEZA VISUAL
+
             socket.on('commander_id_duplicate', (info) => {
                 alert(`⚠️ AVISO: El ID "${info.id}" (${info.existingName}) ya está en la lista del evento.\n\nNo se ha vuelto a añadir para mantener sus datos intactos.`);
                 fetchDataFromServer();
             });
-
         }
-            function forzarRespaldoManual() {
+
+        function forzarRespaldoManual() {
+            if (isViewerMode) return;
             const btn = document.querySelector("button[onclick='forzarRespaldoManual()']");
             if (btn) {
                 btn.innerText = "⏳ Enviando...";
@@ -201,7 +203,6 @@
                 btn.disabled = true;
             }
 
-            // Emitimos la señal al servidor usando el canal de sockets activo
             if (socket && socket.connected) {
                 socket.emit('forzar_respaldo_manual', { user: AUTH_USER }, (res) => {
                     if (btn) {
@@ -214,7 +215,6 @@
                             btn.style.background = "#e74c3c";
                         }
                         
-                        // Restauramos el botón a su estado original tras 3 segundos
                         setTimeout(() => {
                             btn.innerText = "🚀 Respaldar en Discord";
                             btn.style.background = "#5865F2";
@@ -229,19 +229,18 @@
                     btn.style.background = "#5865F2";
                 }
             }
-                }
+        }
+
         function fetchDataFromServer() {
             fetch(`${SERVER_URL}/api/commanders`)
                 .then(res => res.json())
                 .then(data => {
                     if (!Array.isArray(data)) return;
                     
-                    // CORREGIDO EN KHAN: Forzamos la limpieza y apuntamos directo a la pestaña activa de la pantalla
                     eventsData = {};
                     eventsData[currentEvent] = [];
 
                     data.forEach(m => {
-                        // Obligamos a que el bucle los agrupe en la pestaña abierta actual para evitar que los descarte por discrepancia de fechas
                         let evKey = currentEvent;
                         if (!eventsData[evKey]) eventsData[evKey] = [];
                         
@@ -255,7 +254,7 @@
                             day3: parseInt(m.day3) || 0
                         });
                     });
-                    // CORREGIDO: En cuanto los datos cargan con éxito, forzamos el estado a OK y abrimos el panel de inmediato
+
                     const loginBtn = document.querySelector("button[onclick='checkAuth()']");
                     if (loginBtn) {
                         loginBtn.innerText = "OK";
@@ -271,10 +270,36 @@
                 .then(res => res.json())
                 .then(data => { blacklist = Array.isArray(data) ? data : []; renderApp(); });
         }
+
+        function aplicarPermisosVista() {
+            const botonesAdmin = [
+                "button[onclick=\"openModal('add-member-modal')\"]",
+                "button[onclick=\"openModal('event-modal')\"]",
+                "button[onclick=\"openModal('blacklist-modal')\"]",
+                "button[onclick=\"openModal('clone-modal')\"]",
+                "button[onclick*='forzar-respaldo-manual']"
+            ];
+            botonesAdmin.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    if (isViewerMode) el.classList.add("hidden");
+                    else el.classList.remove("hidden");
+                }
+            });
+        }
+
         function checkAuth() {
-            const u = document.getElementById("username").value;
-            const p = document.getElementById("password").value;
+            const u = document.getElementById("username").value.trim();
+            const p = document.getElementById("password").value.trim();
             if (u === AUTH_USER && p === AUTH_PASS) {
+                isViewerMode = false;
+                aplicarPermisosVista();
+                document.getElementById("login-screen").classList.add("hidden");
+                document.getElementById("main-panel").classList.remove("hidden");
+                initSocketConnection();
+            } else if (u === VIEWER_USER && p === VIEWER_PASS) {
+                isViewerMode = true;
+                aplicarPermisosVista();
                 document.getElementById("login-screen").classList.add("hidden");
                 document.getElementById("main-panel").classList.remove("hidden");
                 initSocketConnection();
@@ -282,7 +307,9 @@
                 document.getElementById("login-error").classList.remove("hidden");
             }
         }
+
         function logout() {
+            isViewerMode = false;
             document.getElementById("username").value = "";
             document.getElementById("password").value = "";
             document.getElementById("login-screen").classList.remove("hidden");
