@@ -360,6 +360,37 @@
             closeModal("event-modal");
             renderApp();
         }
+                function deleteCurrentEvent() {
+            if (isViewerMode) return;
+            const selector = document.getElementById("event-selector");
+            if (!selector) return;
+
+            if (selector.options.length <= 1) {
+                alert("⚠️ No puedes borrar el único evento activo. Crea otro evento antes de eliminar este.");
+                return;
+            }
+
+            const eventToDelete = currentEvent;
+            if (!confirm(`⚠️ ATENCIÓN: ¿Seguro que quieres borrar el evento "${eventToDelete}" y todos sus datos?`)) return;
+
+            delete eventsData[eventToDelete];
+
+            for (let i = 0; i < selector.options.length; i++) {
+                if (selector.options[i].value === eventToDelete) {
+                    selector.remove(i);
+                    break;
+                }
+            }
+
+            currentEvent = selector.value;
+
+            if (socket && socket.connected) {
+                socket.emit('delete_event_cloud', { date: eventToDelete });
+            }
+
+            renderApp();
+                }
+        
 
         function addBlacklistDirect() {
             if (isViewerMode) return;
