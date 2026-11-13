@@ -139,9 +139,24 @@ async function initDatabase() {
 }
 app.get('/api/commanders', async (req, res) => {
     try {
-        // CORREGIDO EN PASO A PASO: Forzamos la inyección estática de la fecha en la API para asegurar la sincronización perfecta
+        // 1. Limpiamos duplicados exactos de (id, event_date) si quedaron de pruebas anteriores
+        await pool.query(`
+            DELETE FROM commanders a USING commanders b
+            WHERE a.ctid < b.ctid 
+              AND TRIM(a.id) = TRIM(b.id) 
+              AND TRIM(COALESCE(a.event_date, '2026-11-06')) = TRIM(COALESCE(b.event_date, '2026-11-06'));
+        `).catch(() => {});
+
+        // 2. Aseguramos que la clave primaria permita repetir ID en distintas fechas de evento
+        await pool.query(`
+            ALTER TABLE commanders DROP CONSTRAINT IF EXISTS commanders_pkey;
+            ALTER TABLE commanders ADD PRIMARY KEY (id, event_date);
+        `).catch(() => {});
+
+        // 3. Devolvemos la fecha real de cada comandante (usando '2026-11-06' solo si estuviera vacía)
         const queryText = `
-            SELECT id, name, status, chat, day1, day2, day3, '2026-11-06' AS event_date 
+            SELECT id, name, status, chat, day1, day2, day3, 
+                   COALESCE(NULLIF(TRIM(event_date), ''), '2026-11-06') AS event_date 
             FROM commanders 
             ORDER BY id ASC
         `;
@@ -151,6 +166,7 @@ app.get('/api/commanders', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 
 app.get('/api/blacklist', async (req, res) => {
