@@ -197,16 +197,25 @@ io.on('connection', (socket) => {
             callback(resultado);
         }
     });
-        socket.on('add_new_commander_cloud', async (data) => {
+            socket.on('add_new_commander_cloud', async (data) => {
         try {
             const id = String(data.id || data.commander_id || data.identity_no).trim();
             const { name } = data;
-            const event_date = data.event_date || '2026-11-06';
+            const event_date = String(data.event_date || '2026-11-06').trim();
             
             if (!id || !name) return console.warn("⚠️ Campos críticos ausentes en add_new_commander_cloud.");
 
-            // Comprobamos primero si el ID ya está registrado en la lista del evento
-            const existe = await pool.query("SELECT name FROM commanders WHERE TRIM(id) = $1", [id]);
+            // Permitimos que el mismo ID exista en distintas fechas de evento
+            await pool.query(`
+                ALTER TABLE commanders DROP CONSTRAINT IF EXISTS commanders_pkey;
+                ALTER TABLE commanders ADD PRIMARY KEY (id, event_date);
+            `).catch(() => {});
+
+            // Comprobamos si el ID ya está registrado EN ESTE EVENTO concreto
+            const existe = await pool.query(
+                "SELECT name FROM commanders WHERE TRIM(id) = $1 AND TRIM(event_date) = $2", 
+                [id, event_date]
+            );
             
             if (existe.rows.length > 0) {
                 socket.emit('commander_id_duplicate', { 
@@ -216,10 +225,11 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Si es nuevo, lo guardamos con normalidad
+            // Si es nuevo en este evento, lo guardamos con su fecha
             const queryText = `
                 INSERT INTO commanders (id, name, event_date, status, chat, day1, day2, day3) 
                 VALUES ($1, $2, $3, 'Pending', 'Out', 0, 0, 0)
+                ON CONFLICT (id, event_date) DO NOTHING
             `;
 
             await pool.query(queryText, [id, name, event_date]);
@@ -228,6 +238,7 @@ io.on('connection', (socket) => {
             console.error("❌ Error crítico en add_new_commander_cloud:", e); 
         }
     });
+
     
         // ELIMINAR COMANDANTE DE LA LISTA Y BASE DE DATOS
     socket.on('delete_commander_cloud', async (data) => {
