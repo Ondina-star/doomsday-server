@@ -453,7 +453,6 @@
                       .replace(/"/g, "&quot;")
                       .replace(/'/g, "'");
         }
-
         function renderApp() {
             const body = document.getElementById("member-table-body");
             if(!body) return;
@@ -505,24 +504,41 @@
                 if (filterType === "waitlist" && currentStatus !== "waitlist") return;
                 if (filterType === "in-chat" && currentChat !== "in chat") return;
                 
-                // ALINEACIÓN TOTAL: Inicializamos los botones de control mapeados por ID de texto plano
-                let statusBtn = (currentStatus === "confirmed") ? `<button onclick="toggleStatus('${safeId}')" class="bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-emerald-900/60 shadow">Confirmed</button>` : ((currentStatus === "canceled") ? `<button onclick="toggleStatus('${safeId}')" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-slate-700/60 shadow">Canceled</button>` : ((currentStatus === "waitlist") ? `<button onclick="toggleStatus('${safeId}')" class="bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-cyan-900/60 shadow">Waitlist</button>` : `<button onclick="toggleStatus('${safeId}')" class="bg-rose-950/60 border border-rose-800/40 text-rose-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-rose-900/60 shadow">Pending</button>`));
-                let chatBtn = (currentChat === "in chat") ? `<button onclick="toggleChat('${safeId}')" class="bg-blue-950/60 border border-blue-500/40 text-blue-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-blue-900/60 shadow">In Chat</button>` : `<button onclick="toggleChat('${safeId}')" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-slate-700/60 shadow">Out</button>`;
+                let statusBtn, chatBtn, dice1Html, dice2Html, dice3Html, deleteBtnHtml;
+
+                if (isViewerMode) {
+                    statusBtn = `<span class="inline-block px-3 py-1 rounded text-xs w-28 uppercase font-mono font-bold ${currentStatus === 'confirmed' ? 'text-emerald-400 bg-emerald-950/40' : currentStatus === 'canceled' ? 'text-slate-400 bg-slate-800/60' : currentStatus === 'waitlist' ? 'text-cyan-400 bg-cyan-950/40' : 'text-rose-400 bg-rose-950/40'}">${currentStatus}</span>`;
+                    chatBtn = `<span class="inline-block px-3 py-1 rounded text-xs w-24 uppercase font-mono font-bold ${currentChat === 'in chat' ? 'text-blue-400 bg-blue-950/40' : 'text-slate-400 bg-slate-800/60'}">${currentChat}</span>`;
+                    dice1Html = `<span class="font-mono font-bold">${d1}</span>`;
+                    dice2Html = `<span class="font-mono font-bold">${d2}</span>`;
+                    dice3Html = `<span class="font-mono font-bold">${d3}</span>`;
+                    deleteBtnHtml = `<span class="text-gray-600 text-xs">-</span>`;
+                } else {
+                    statusBtn = (currentStatus === "confirmed") ? `<button onclick="toggleStatus('${safeId}')" class="bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-emerald-900/60 shadow">Confirmed</button>` : ((currentStatus === "canceled") ? `<button onclick="toggleStatus('${safeId}')" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-slate-700/60 shadow">Canceled</button>` : ((currentStatus === "waitlist") ? `<button onclick="toggleStatus('${safeId}')" class="bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-cyan-900/60 shadow">Waitlist</button>` : `<button onclick="toggleStatus('${safeId}')" class="bg-rose-950/60 border border-rose-800/40 text-rose-400 font-bold px-3 py-1.5 rounded text-xs w-28 uppercase font-mono transition hover:bg-rose-900/60 shadow">Pending</button>`));
+                    chatBtn = (currentChat === "in chat") ? `<button onclick="toggleChat('${safeId}')" class="bg-blue-950/60 border border-blue-500/40 text-blue-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-blue-900/60 shadow">In Chat</button>` : `<button onclick="toggleChat('${safeId}')" class="bg-slate-800/80 border border-slate-700/50 text-slate-400 font-bold px-3 py-1.5 rounded text-xs w-24 uppercase font-mono transition hover:bg-slate-700/60 shadow">Out</button>`;
+                    dice1Html = `<button onclick="updateDice('${safeId}',1,-1)" class="bg-gray-800 px-2 text-red-400 font-mono font-bold">-</button> <span class="mx-1 font-mono">${d1}</span> <button onclick="updateDice('${safeId}',1,1)" class="bg-gray-800 px-2 text-green-400 font-mono font-bold">+</button>`;
+                    dice2Html = `<button onclick="updateDice('${safeId}',2,-1)" class="bg-gray-800 px-2 text-red-400 font-mono font-bold">-</button> <span class="mx-1 font-mono">${d2}</span> <button onclick="updateDice('${safeId}',2,1)" class="bg-gray-800 px-2 text-green-400 font-mono font-bold">+</button>`;
+                    dice3Html = `<button onclick="updateDice('${safeId}',3,-1)" class="bg-gray-800 px-2 text-red-400 font-mono font-bold">-</button> <span class="mx-1 font-mono">${d3}</span> <button onclick="updateDice('${safeId}',3,1)" class="bg-gray-800 px-2 text-green-400 font-mono font-bold">+</button>`;
+                    deleteBtnHtml = `<button onclick="deleteMember('${safeId}', '${safeName}')" title="Eliminar miembro" class="bg-red-950/50 hover:bg-red-800/70 border border-red-700/40 text-red-400 px-2.5 py-1 rounded text-xs transition">🗑️</button>`;
+                }
                 
-                // IMPRESIÓN MÁSTER EN 7 COLUMNAS PERFECTAS: ID, Nombre, Día 1, Día 2, Día 3, Chat, Estado
                 body.innerHTML += `<tr>
                     <td class="p-3 font-mono text-yellow-500 font-bold">${safeId}</td>
                     <td class="p-3 font-bold text-gray-100">${safeName}</td>
-                    <td class="p-3 text-center"><button onclick="updateDice('${safeId}',1,-1)" class="bg-gray-800 px-2 text-red-400 font-mono font-bold">-</button> <span class="mx-1 font-mono">${d1}</span> <button onclick="updateDice('${safeId}',1,1)" class="bg-gray-800 px-2 text-green-400 font-mono font-bold">+</button></td>
-                    <td class="p-3 text-center"><button onclick="updateDice('${safeId}',2,-1)" class="bg-gray-800 px-2 text-red-400 font-mono font-bold">-</button> <span class="mx-1 font-mono">${d2}</span> <button onclick="updateDice('${safeId}',2,1)" class="bg-gray-800 px-2 text-green-400 font-mono font-bold">+</button></td>
-                    <td class="p-3 text-center"><button onclick="updateDice('${safeId}',3,-1)" class="bg-gray-800 px-2 text-red-400 font-mono font-bold">-</button> <span class="mx-1 font-mono">${d3}</span> <button onclick="updateDice('${safeId}',3,1)" class="bg-gray-800 px-2 text-green-400 font-mono font-bold">+</button></td>
+                    <td class="p-3 text-center">${dice1Html}</td>
+                    <td class="p-3 text-center">${dice2Html}</td>
+                    <td class="p-3 text-center">${dice3Html}</td>
                     <td class="p-3 text-center">${chatBtn}</td>
                     <td class="p-3 text-center">${statusBtn}</td>
+                    <td class="p-3 text-center">${deleteBtnHtml}</td>
                 </tr>`;
             });
         }
+
         function applyFilters() { renderApp(); }
-                function ejecutarAltaMiembro() {
+
+        function ejecutarAltaMiembro() {
+            if (isViewerMode) return;
             const id = document.getElementById("new-member-id").value.trim();
             const name = document.getElementById("new-member-name").value.trim();
             const err = document.getElementById("add-member-error");
@@ -548,7 +564,6 @@
                 eventsData[currentEvent] = [];
             }
 
-            // Comprobamos si el ID ya está en la lista del evento
             const rep = eventsData[currentEvent].find(m => String(m.id).trim() === id);
             if (rep) {
                 if (err) {
@@ -582,3 +597,7 @@
     </script>
 </body>
 </html>
+
+
+
+                
