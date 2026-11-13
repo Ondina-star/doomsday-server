@@ -217,6 +217,19 @@ io.on('connection', (socket) => {
             console.error("❌ Error crítico en add_new_commander_cloud:", e); 
         }
     });
+        // ELIMINAR COMANDANTE DE LA LISTA Y BASE DE DATOS
+    socket.on('delete_commander_cloud', async (data) => {
+        try {
+            const id = String(data.id || data.commander_id).trim();
+            if (!id) return;
+            await pool.query("DELETE FROM commanders WHERE TRIM(id) = $1", [id]);
+            console.log(`🗑️ Comandante eliminado: ${id}`);
+            io.emit('commander_synchronized');
+        } catch (e) {
+            console.error("❌ Error eliminando comandante:", e);
+        }
+    });
+    
 
     socket.on('update_commander_data', async (data) => {
         try {
