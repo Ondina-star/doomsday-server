@@ -217,6 +217,7 @@ io.on('connection', (socket) => {
             console.error("❌ Error crítico en add_new_commander_cloud:", e); 
         }
     });
+    
         // ELIMINAR COMANDANTE DE LA LISTA Y BASE DE DATOS
     socket.on('delete_commander_cloud', async (data) => {
         try {
@@ -229,6 +230,20 @@ io.on('connection', (socket) => {
             console.error("❌ Error eliminando comandante:", e);
         }
     });
+        // ELIMINAR UN EVENTO COMPLETO DE LA BASE DE DATOS
+    socket.on('delete_event_cloud', async (data) => {
+        try {
+            const eventDate = String(data.date || data.event_date).trim();
+            if (!eventDate) return;
+            await pool.query("DELETE FROM commanders WHERE TRIM(event_date) = $1", [eventDate]);
+            await pool.query("DELETE FROM events WHERE TRIM(event_date) = $1", [eventDate]).catch(() => {});
+            console.log(`🗑️ Evento eliminado de la nube: ${eventDate}`);
+            io.emit('commander_synchronized');
+        } catch (e) {
+            console.error("❌ Error eliminando evento:", e);
+        }
+    });
+    
     
 
     socket.on('update_commander_data', async (data) => {
